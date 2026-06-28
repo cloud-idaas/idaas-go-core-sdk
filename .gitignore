@@ -1,0 +1,51 @@
+# 构建产物
+build/
+dist/
+out/
+.idea/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go 测试 / 覆盖率
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# Go 工作区
+go.work
+go.work.sum
+
+# 依赖目录（vendor 默认提交，如需忽略请取消注释）
+# vendor/
+
+# 本地凭证 / 私钥（防止误提交敏感信息）
+*.pem
+*.key
+client-config.json
+.cloud_idaas/
+
+# IDE
+.vscode/
+.idea/*
+!.idea/.gitignore
+!.idea/idaas-go-core-sdk.iml
+!.idea/modules.xml
+!.idea/vcs.xml
+*.iml.bak
+
+# macOS / Linux 系统文件
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# 日志和临时文件
+*.log
+*.tmp
+*.swp
+*.swo
+*~
