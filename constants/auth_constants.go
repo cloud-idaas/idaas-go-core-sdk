@@ -68,9 +68,13 @@ const (
 	//   GET http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=<URL-encoded resource>
 	//   必须携带请求头 Metadata: true
 	//
-	// %s 处填入 URL-encoded 的 resource（一般为 IDaaS issuer endpoint 的 origin，写入 token 的 aud claim）。
+	// %s 处填入 URL-encoded 的 resource。
 	// 响应体为 JSON：{"access_token":"<JWT>", "expires_on":"<unix秒字符串>", ...}
 	AzureVmIdentityTokenUrlTemplate = "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=%s"
+
+	// AzureVmManagementResource Azure VM Managed Identity 请求 token 时固定的 resource 值
+	// 用于获取访问 Azure Resource Manager API 的令牌
+	AzureVmManagementResource = "https://management.azure.com/"
 
 	// HeaderMetadata Azure IMDS 必须携带的请求头名
 	HeaderMetadata = "Metadata"

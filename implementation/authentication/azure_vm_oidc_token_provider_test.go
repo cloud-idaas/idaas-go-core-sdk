@@ -61,7 +61,6 @@ func makeFakeJwtForAzure(exp int64) string {
 }
 
 func TestAzureVmOidcTokenProvider_GetOidcToken_Success(t *testing.T) {
-	resource := "https://idaas.example.com"
 	expectedToken := makeFakeJwtForAzure(time.Now().Add(time.Hour).Unix())
 	expiresOn := time.Now().Add(time.Hour).Unix()
 
@@ -71,7 +70,7 @@ func TestAzureVmOidcTokenProvider_GetOidcToken_Success(t *testing.T) {
 		},
 	}
 
-	provider := NewAzureVmOidcTokenProvider(mock, resource)
+	provider := NewAzureVmOidcTokenProvider(mock)
 	token, err := provider.GetOidcToken()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -88,8 +87,8 @@ func TestAzureVmOidcTokenProvider_GetOidcToken_Success(t *testing.T) {
 		t.Errorf("expected header %s=%s, got %s", constants.HeaderMetadata, constants.HeaderMetadataValueTrue, got)
 	}
 
-	// 校验 URL 包含 URL-encoded resource、api-version 与 IMDS 主机
-	wantSubstr := "resource=" + url.QueryEscape(resource)
+	// 校验 URL 包含 URL-encoded 固定 resource、api-version 与 IMDS 主机
+	wantSubstr := "resource=" + url.QueryEscape(constants.AzureVmManagementResource)
 	if !strings.Contains(mock.lastRequest.URL, wantSubstr) {
 		t.Errorf("URL missing encoded resource %q, got URL=%s", wantSubstr, mock.lastRequest.URL)
 	}
@@ -110,7 +109,7 @@ func TestAzureVmOidcTokenProvider_CacheHitWhenNotExpiring(t *testing.T) {
 		},
 	}
 
-	provider := NewAzureVmOidcTokenProvider(mock, "https://idaas.example.com")
+	provider := NewAzureVmOidcTokenProvider(mock)
 	if _, err := provider.GetOidcToken(); err != nil {
 		t.Fatalf("first call failed: %v", err)
 	}
@@ -143,7 +142,7 @@ func TestAzureVmOidcTokenProvider_RefreshWhenSoonExpiring(t *testing.T) {
 		},
 	}
 
-	provider := NewAzureVmOidcTokenProvider(mock, "https://idaas.example.com")
+	provider := NewAzureVmOidcTokenProvider(mock)
 	first, err := provider.GetOidcToken()
 	if err != nil {
 		t.Fatalf("first call failed: %v", err)
@@ -175,7 +174,7 @@ func TestAzureVmOidcTokenProvider_FallbackToJwtExpWhenExpiresOnInvalid(t *testin
 		},
 	}
 
-	provider := NewAzureVmOidcTokenProvider(mock, "https://idaas.example.com")
+	provider := NewAzureVmOidcTokenProvider(mock)
 	if _, err := provider.GetOidcToken(); err != nil {
 		t.Fatalf("first call failed: %v", err)
 	}
@@ -198,7 +197,7 @@ func TestAzureVmOidcTokenProvider_NoExpInfoDisablesCache(t *testing.T) {
 		},
 	}
 
-	provider := NewAzureVmOidcTokenProvider(mock, "https://idaas.example.com")
+	provider := NewAzureVmOidcTokenProvider(mock)
 	for i := 0; i < 3; i++ {
 		if _, err := provider.GetOidcToken(); err != nil {
 			t.Fatalf("call #%d failed: %v", i+1, err)
@@ -216,7 +215,7 @@ func TestAzureVmOidcTokenProvider_HttpError(t *testing.T) {
 		},
 	}
 
-	provider := NewAzureVmOidcTokenProvider(mock, "https://idaas.example.com")
+	provider := NewAzureVmOidcTokenProvider(mock)
 	_, err := provider.GetOidcToken()
 	if err == nil {
 		t.Fatal("expected error for HTTP 400, got nil")
@@ -233,7 +232,7 @@ func TestAzureVmOidcTokenProvider_InvalidJson(t *testing.T) {
 		},
 	}
 
-	provider := NewAzureVmOidcTokenProvider(mock, "https://idaas.example.com")
+	provider := NewAzureVmOidcTokenProvider(mock)
 	_, err := provider.GetOidcToken()
 	if err == nil {
 		t.Fatal("expected error for invalid JSON, got nil")
@@ -247,32 +246,16 @@ func TestAzureVmOidcTokenProvider_EmptyAccessToken(t *testing.T) {
 		},
 	}
 
-	provider := NewAzureVmOidcTokenProvider(mock, "https://idaas.example.com")
+	provider := NewAzureVmOidcTokenProvider(mock)
 	_, err := provider.GetOidcToken()
 	if err == nil {
 		t.Fatal("expected error for empty access_token, got nil")
 	}
 }
 
-func TestAzureVmOidcTokenProvider_MissingResource(t *testing.T) {
-	mock := &mockAzureHttpClient{
-		executeFn: func(req *domain.HttpRequest) (*domain.HttpResponse, error) {
-			return &domain.HttpResponse{StatusCode: 200, Body: []byte(`{"access_token":"x"}`)}, nil
-		},
-	}
-	provider := NewAzureVmOidcTokenProvider(mock, "")
-	_, err := provider.GetOidcToken()
-	if err == nil {
-		t.Fatal("expected error when resource is empty, got nil")
-	}
-	if mock.callCount != 0 {
-		t.Errorf("HTTP client should not be called when resource missing, got %d calls", mock.callCount)
-	}
-}
-
 func TestAzureVmIdentityTokenUrlTemplate_FormatsCorrectly(t *testing.T) {
-	got := fmt.Sprintf(constants.AzureVmIdentityTokenUrlTemplate, url.QueryEscape("https://idaas.example.com"))
-	want := "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2Fidaas.example.com"
+	got := fmt.Sprintf(constants.AzureVmIdentityTokenUrlTemplate, url.QueryEscape(constants.AzureVmManagementResource))
+	want := "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2Fmanagement.azure.com%2F"
 	if got != want {
 		t.Errorf("URL template mismatch:\n  want: %s\n  got:  %s", want, got)
 	}

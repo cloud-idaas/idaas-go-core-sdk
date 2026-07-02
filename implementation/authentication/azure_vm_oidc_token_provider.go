@@ -21,7 +21,7 @@ import (
 // 通过 Azure IMDS（Instance Metadata Service）获取 Managed Identity ID Token，用于 IDaaS OIDC 联邦认证：
 //
 //	GET http://169.254.169.254/metadata/identity/oauth2/token
-//	    ?api-version=2018-02-01&resource=<URL-encoded resource>
+//	    ?api-version=2018-02-01&resource=https%3A%2F%2Fmanagement.azure.com%2F
 //	Header: Metadata: true
 //
 // 参考：https://learn.microsoft.com/azure/active-directory/managed-identities-azure-resources/how-to-use-vm-token
@@ -29,13 +29,12 @@ import (
 // 适用场景：authnMethod = OIDC、clientDeployEnvironment = AZURE_VM
 //
 // 实现细节：
-//  1. resource 由调用方传入，写入 token 的 aud claim（约定为 IDaaS issuer endpoint 的 origin）
+//  1. resource 固定为 https://management.azure.com/，用于获取访问 Azure Resource Manager API 的令牌
 //  2. IMDS 返回 JSON 包装：{"access_token":"<JWT>", "expires_on":"<unix秒字符串>", ...}
 //  3. 缓存策略：使用 expires_on 字段（unix 秒）判断过期；过期前 10 分钟主动刷新
 //     若 expires_on 解析失败，回退到解析 JWT payload 的 exp；都失败则禁用缓存
 type AzureVmOidcTokenProvider struct {
 	httpClient http.HttpClient
-	resource   string
 
 	mu          sync.Mutex
 	cachedToken string
@@ -56,25 +55,15 @@ type azureImdsTokenResponse struct {
 
 // NewAzureVmOidcTokenProvider 创建 AzureVmOidcTokenProvider
 //
-// resource：写入 ID Token aud claim 的值，通常传入 IDaaS issuer endpoint 的 origin（必填）
 // httpClient：HTTP 客户端（必填）
-func NewAzureVmOidcTokenProvider(httpClient http.HttpClient, resource string) *AzureVmOidcTokenProvider {
+func NewAzureVmOidcTokenProvider(httpClient http.HttpClient) *AzureVmOidcTokenProvider {
 	return &AzureVmOidcTokenProvider{
 		httpClient: httpClient,
-		resource:   resource,
 	}
 }
 
 // GetOidcToken 获取 OIDC Token（带轻量缓存，过期前 10 分钟刷新）
 func (p *AzureVmOidcTokenProvider) GetOidcToken() (string, error) {
-	if p.resource == "" {
-		return "", errors.NewConfigError(
-			"OidcResourceNotFound",
-			"resource is required for Azure VM OIDC token (typically the IDaaS issuer endpoint origin)",
-			nil,
-		)
-	}
-
 	p.mu.Lock()
 	if p.cachedToken != "" && !p.willSoonExpire() {
 		token := p.cachedToken
@@ -83,7 +72,7 @@ func (p *AzureVmOidcTokenProvider) GetOidcToken() (string, error) {
 	}
 	p.mu.Unlock()
 
-	tokenUrl := fmt.Sprintf(constants.AzureVmIdentityTokenUrlTemplate, url.QueryEscape(p.resource))
+	tokenUrl := fmt.Sprintf(constants.AzureVmIdentityTokenUrlTemplate, url.QueryEscape(constants.AzureVmManagementResource))
 	resp, err := p.httpClient.Execute(&domain.HttpRequest{
 		Method: enums.HttpMethodGet,
 		URL:    tokenUrl,
@@ -130,11 +119,6 @@ func (p *AzureVmOidcTokenProvider) GetOidcToken() (string, error) {
 	p.expiresAt = resolveAzureTokenExpiresAt(imdsResp.ExpiresOn, token)
 	p.mu.Unlock()
 	return token, nil
-}
-
-// Resource 返回当前 resource 值
-func (p *AzureVmOidcTokenProvider) Resource() string {
-	return p.resource
 }
 
 // willSoonExpire 判断 token 是否即将在缓冲时间内过期

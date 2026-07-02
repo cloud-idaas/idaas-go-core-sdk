@@ -340,23 +340,8 @@ func (p *IDaaSMachineCredentialProvider) getOidcCredentialForDeployEnv(deployEnv
 		oidcTokenProvider = authentication.NewGcpVmOidcTokenProvider(p.httpClient, audience)
 	case enums.ClientDeployEnvironmentAzureVm:
 		// Azure VM OIDC：从 IMDS Managed Identity 获取 ID Token
-		// resource 取 issuer 的 origin（scheme://host[:port]），写入 token 的 aud claim
-		if p.config.IssuerEndpoint == "" {
-			return nil, errors.NewConfigError(
-				"IssuerEndpointNotFound",
-				"issuer endpoint is required as resource source for Azure VM OIDC authentication",
-				nil,
-			)
-		}
-		resource, err := util.ExtractUrlOrigin(p.config.IssuerEndpoint)
-		if err != nil {
-			return nil, errors.NewConfigError(
-				"IssuerEndpointInvalid",
-				"failed to extract origin from issuer endpoint for Azure VM OIDC resource: "+err.Error(),
-				err,
-			)
-		}
-		oidcTokenProvider = authentication.NewAzureVmOidcTokenProvider(p.httpClient, resource)
+		// resource 固定为 https://management.azure.com/
+		oidcTokenProvider = authentication.NewAzureVmOidcTokenProvider(p.httpClient)
 	default:
 		return nil, errors.NewConfigError(
 			"UnsupportedClientDeployEnvironment",
