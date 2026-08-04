@@ -3,8 +3,8 @@ package plugin
 import (
 	"sync"
 
-	"github.com/aliyun/idaas-go-core-sdk/errors"
-	"github.com/aliyun/idaas-go-core-sdk/provider"
+	"github.com/cloud-idaas/idaas-go-core-sdk/errors"
+	"github.com/cloud-idaas/idaas-go-core-sdk/provider"
 )
 
 // PluginRegistry 插件注册表

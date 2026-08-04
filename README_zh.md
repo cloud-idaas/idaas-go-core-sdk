@@ -24,7 +24,7 @@ IDaaS（身份即服务）M2M 产品的 Go SDK，为开发者提供便捷的机�
 通过 `go get` 添加依赖：
 
 ```bash
-go get github.com/aliyun/idaas-go-core-sdk
+go get github.com/cloud-idaas/idaas-go-core-sdk
 ```
 
 ## 指定配置文件
@@ -256,8 +256,8 @@ package main
 
 import (
     "fmt"
-    "github.com/aliyun/idaas-go-core-sdk/config"
-    "github.com/aliyun/idaas-go-core-sdk/factory"
+    "github.com/cloud-idaas/idaas-go-core-sdk/config"
+    "github.com/cloud-idaas/idaas-go-core-sdk/factory"
 )
 
 func main() {
@@ -328,10 +328,10 @@ package main
 
 import (
     "fmt"
-    "github.com/aliyun/idaas-go-core-sdk/config"
-    "github.com/aliyun/idaas-go-core-sdk/factory"
-    "github.com/aliyun/idaas-go-core-sdk/implementation"
-    "github.com/aliyun/idaas-go-core-sdk/http"
+    "github.com/cloud-idaas/idaas-go-core-sdk/config"
+    "github.com/cloud-idaas/idaas-go-core-sdk/factory"
+    "github.com/cloud-idaas/idaas-go-core-sdk/implementation"
+    "github.com/cloud-idaas/idaas-go-core-sdk/http"
 )
 
 func main() {

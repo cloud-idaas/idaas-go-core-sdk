@@ -1,7 +1,7 @@
 package http
 
 import (
-	"github.com/aliyun/idaas-go-core-sdk/domain"
+	"github.com/cloud-idaas/idaas-go-core-sdk/domain"
 )
 
 // HttpClient HTTP 客户端接口 (§9.4)

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aliyun/idaas-go-core-sdk/cache"
+	"github.com/cloud-idaas/idaas-go-core-sdk/cache"
 )
 
 // NonBlockingPrefetchStrategy 非阻塞预取策略 (§7.5.2)

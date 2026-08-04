@@ -4,10 +4,10 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/aliyun/idaas-go-core-sdk/constants"
-	"github.com/aliyun/idaas-go-core-sdk/enums"
-	"github.com/aliyun/idaas-go-core-sdk/errors"
-	"github.com/aliyun/idaas-go-core-sdk/util"
+	"github.com/cloud-idaas/idaas-go-core-sdk/constants"
+	"github.com/cloud-idaas/idaas-go-core-sdk/enums"
+	"github.com/cloud-idaas/idaas-go-core-sdk/errors"
+	"github.com/cloud-idaas/idaas-go-core-sdk/util"
 )
 
 // ConfigValidator 配置验证器 (§8.5)

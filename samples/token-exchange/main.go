@@ -18,10 +18,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/aliyun/idaas-go-core-sdk/config"
-	"github.com/aliyun/idaas-go-core-sdk/factory"
-	"github.com/aliyun/idaas-go-core-sdk/http"
-	"github.com/aliyun/idaas-go-core-sdk/implementation"
+	"github.com/cloud-idaas/idaas-go-core-sdk/config"
+	"github.com/cloud-idaas/idaas-go-core-sdk/factory"
+	"github.com/cloud-idaas/idaas-go-core-sdk/http"
+	"github.com/cloud-idaas/idaas-go-core-sdk/implementation"
 )
 
 func main() {

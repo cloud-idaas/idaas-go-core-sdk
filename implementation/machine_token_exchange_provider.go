@@ -1,9 +1,9 @@
 package implementation
 
 import (
-	"github.com/aliyun/idaas-go-core-sdk/credential"
-	"github.com/aliyun/idaas-go-core-sdk/http"
-	"github.com/aliyun/idaas-go-core-sdk/oauth2"
+	"github.com/cloud-idaas/idaas-go-core-sdk/credential"
+	"github.com/cloud-idaas/idaas-go-core-sdk/http"
+	"github.com/cloud-idaas/idaas-go-core-sdk/oauth2"
 )
 
 // IDaaSMachineTokenExchangeCredentialProvider 机器令牌交换凭证提供者 (§2.1 Layer3)

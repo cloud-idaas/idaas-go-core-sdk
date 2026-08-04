@@ -5,11 +5,11 @@ import (
 	"crypto/rsa"
 	"time"
 
-	"github.com/aliyun/idaas-go-core-sdk/credential"
-	"github.com/aliyun/idaas-go-core-sdk/errors"
-	"github.com/aliyun/idaas-go-core-sdk/http"
-	"github.com/aliyun/idaas-go-core-sdk/oauth2"
-	"github.com/aliyun/idaas-go-core-sdk/util"
+	"github.com/cloud-idaas/idaas-go-core-sdk/credential"
+	"github.com/cloud-idaas/idaas-go-core-sdk/errors"
+	"github.com/cloud-idaas/idaas-go-core-sdk/http"
+	"github.com/cloud-idaas/idaas-go-core-sdk/oauth2"
+	"github.com/cloud-idaas/idaas-go-core-sdk/util"
 )
 
 // StaticX509AssertionProvider PrivateCA X509 证书认证提供者（PCA）

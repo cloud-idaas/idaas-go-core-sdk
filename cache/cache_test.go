@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aliyun/idaas-go-core-sdk/enums"
+	"github.com/cloud-idaas/idaas-go-core-sdk/enums"
 )
 
 // ==================== Clock 测试 ====================

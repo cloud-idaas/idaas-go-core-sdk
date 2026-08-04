@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/aliyun/idaas-go-core-sdk/enums"
+	"github.com/cloud-idaas/idaas-go-core-sdk/enums"
 )
 
 func TestIDaaSClientConfig(t *testing.T) {

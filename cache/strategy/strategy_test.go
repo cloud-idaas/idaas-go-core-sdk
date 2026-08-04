@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aliyun/idaas-go-core-sdk/cache"
-	"github.com/aliyun/idaas-go-core-sdk/enums"
+	"github.com/cloud-idaas/idaas-go-core-sdk/cache"
+	"github.com/cloud-idaas/idaas-go-core-sdk/enums"
 )
 
 // ==================== Mock Clock 用于测试 ====================

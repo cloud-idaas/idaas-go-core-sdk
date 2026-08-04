@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/aliyun/idaas-go-core-sdk/enums"
+	"github.com/cloud-idaas/idaas-go-core-sdk/enums"
 )
 
 // IdentityAuthenticationConfiguration 身份认证配置结构体 (§13.4)

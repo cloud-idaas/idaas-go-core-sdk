@@ -1,4 +1,4 @@
-module github.com/aliyun/idaas-go-core-sdk
+module github.com/cloud-idaas/idaas-go-core-sdk
 
 go 1.18
 

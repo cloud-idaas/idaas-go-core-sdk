@@ -28,10 +28,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/aliyun/idaas-go-core-sdk/config"
-	"github.com/aliyun/idaas-go-core-sdk/factory"
-	"github.com/aliyun/idaas-go-core-sdk/http"
-	"github.com/aliyun/idaas-go-core-sdk/oauth2"
+	"github.com/cloud-idaas/idaas-go-core-sdk/config"
+	"github.com/cloud-idaas/idaas-go-core-sdk/factory"
+	"github.com/cloud-idaas/idaas-go-core-sdk/http"
+	"github.com/cloud-idaas/idaas-go-core-sdk/oauth2"
 )
 
 func main() {

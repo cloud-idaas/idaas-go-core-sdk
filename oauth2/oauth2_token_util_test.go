@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aliyun/idaas-go-core-sdk/credential"
-	"github.com/aliyun/idaas-go-core-sdk/domain"
-	sdkerrors "github.com/aliyun/idaas-go-core-sdk/errors"
+	"github.com/cloud-idaas/idaas-go-core-sdk/credential"
+	"github.com/cloud-idaas/idaas-go-core-sdk/domain"
+	sdkerrors "github.com/cloud-idaas/idaas-go-core-sdk/errors"
 )
 
 // MockHttpClient 模拟 HTTP 客户端

@@ -1,6 +1,6 @@
 package implementation
 
-import "github.com/aliyun/idaas-go-core-sdk/credential"
+import "github.com/cloud-idaas/idaas-go-core-sdk/credential"
 
 // StaticIDaaSCredentialProvider 静态凭证提供者（测试用） (§4.2.3)
 type StaticIDaaSCredentialProvider struct {

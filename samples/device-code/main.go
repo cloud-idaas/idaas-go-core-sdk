@@ -31,9 +31,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/aliyun/idaas-go-core-sdk/config"
-	"github.com/aliyun/idaas-go-core-sdk/enums"
-	"github.com/aliyun/idaas-go-core-sdk/factory"
+	"github.com/cloud-idaas/idaas-go-core-sdk/config"
+	"github.com/cloud-idaas/idaas-go-core-sdk/enums"
+	"github.com/cloud-idaas/idaas-go-core-sdk/factory"
 )
 
 func main() {

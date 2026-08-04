@@ -1,9 +1,9 @@
 package implementation
 
 import (
-	"github.com/aliyun/idaas-go-core-sdk/cache"
-	"github.com/aliyun/idaas-go-core-sdk/credential"
-	"github.com/aliyun/idaas-go-core-sdk/enums"
+	"github.com/cloud-idaas/idaas-go-core-sdk/cache"
+	"github.com/cloud-idaas/idaas-go-core-sdk/credential"
+	"github.com/cloud-idaas/idaas-go-core-sdk/enums"
 	"time"
 )
 

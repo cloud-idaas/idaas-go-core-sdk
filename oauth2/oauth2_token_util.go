@@ -4,10 +4,10 @@ import (
 	"encoding/base64"
 	"net/url"
 
-	"github.com/aliyun/idaas-go-core-sdk/constants"
-	"github.com/aliyun/idaas-go-core-sdk/credential"
-	"github.com/aliyun/idaas-go-core-sdk/domain"
-	"github.com/aliyun/idaas-go-core-sdk/http"
+	"github.com/cloud-idaas/idaas-go-core-sdk/constants"
+	"github.com/cloud-idaas/idaas-go-core-sdk/credential"
+	"github.com/cloud-idaas/idaas-go-core-sdk/domain"
+	"github.com/cloud-idaas/idaas-go-core-sdk/http"
 )
 
 // OAuth2TokenUtil OAuth2 令牌工具类 (§6)

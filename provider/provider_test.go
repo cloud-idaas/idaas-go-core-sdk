@@ -3,7 +3,7 @@ package provider
 import (
 	"testing"
 
-	"github.com/aliyun/idaas-go-core-sdk/credential"
+	"github.com/cloud-idaas/idaas-go-core-sdk/credential"
 )
 
 // mockCredential is a mock implementation of IDaaSCredential for testing

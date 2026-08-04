@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aliyun/idaas-go-core-sdk/enums"
+	"github.com/cloud-idaas/idaas-go-core-sdk/enums"
 )
 
 // CachedResultSupplier 缓存结果供应商 (§7.1)

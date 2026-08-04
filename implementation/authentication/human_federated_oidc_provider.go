@@ -9,13 +9,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aliyun/idaas-go-core-sdk/cache"
-	"github.com/aliyun/idaas-go-core-sdk/constants"
-	"github.com/aliyun/idaas-go-core-sdk/credential"
-	sdkerrors "github.com/aliyun/idaas-go-core-sdk/errors"
-	"github.com/aliyun/idaas-go-core-sdk/http"
-	"github.com/aliyun/idaas-go-core-sdk/oauth2"
-	"github.com/aliyun/idaas-go-core-sdk/util"
+	"github.com/cloud-idaas/idaas-go-core-sdk/cache"
+	"github.com/cloud-idaas/idaas-go-core-sdk/constants"
+	"github.com/cloud-idaas/idaas-go-core-sdk/credential"
+	sdkerrors "github.com/cloud-idaas/idaas-go-core-sdk/errors"
+	"github.com/cloud-idaas/idaas-go-core-sdk/http"
+	"github.com/cloud-idaas/idaas-go-core-sdk/oauth2"
+	"github.com/cloud-idaas/idaas-go-core-sdk/util"
 )
 
 const (

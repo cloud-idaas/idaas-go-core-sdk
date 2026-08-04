@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aliyun/idaas-go-core-sdk/constants"
-	"github.com/aliyun/idaas-go-core-sdk/errors"
-	"github.com/aliyun/idaas-go-core-sdk/util"
+	"github.com/cloud-idaas/idaas-go-core-sdk/constants"
+	"github.com/cloud-idaas/idaas-go-core-sdk/errors"
+	"github.com/cloud-idaas/idaas-go-core-sdk/util"
 )
 
 // FileOidcTokenProvider 文件型 OIDC Token 提供者

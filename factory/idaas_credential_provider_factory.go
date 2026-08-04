@@ -3,14 +3,14 @@ package factory
 import (
 	"sync"
 
-	"github.com/aliyun/idaas-go-core-sdk/config"
-	"github.com/aliyun/idaas-go-core-sdk/constants"
-	"github.com/aliyun/idaas-go-core-sdk/enums"
-	"github.com/aliyun/idaas-go-core-sdk/errors"
-	"github.com/aliyun/idaas-go-core-sdk/http"
-	"github.com/aliyun/idaas-go-core-sdk/implementation"
-	"github.com/aliyun/idaas-go-core-sdk/implementation/authentication"
-	"github.com/aliyun/idaas-go-core-sdk/provider"
+	"github.com/cloud-idaas/idaas-go-core-sdk/config"
+	"github.com/cloud-idaas/idaas-go-core-sdk/constants"
+	"github.com/cloud-idaas/idaas-go-core-sdk/enums"
+	"github.com/cloud-idaas/idaas-go-core-sdk/errors"
+	"github.com/cloud-idaas/idaas-go-core-sdk/http"
+	"github.com/cloud-idaas/idaas-go-core-sdk/implementation"
+	"github.com/cloud-idaas/idaas-go-core-sdk/implementation/authentication"
+	"github.com/cloud-idaas/idaas-go-core-sdk/provider"
 )
 
 // IDaaSCredentialProviderFactory 凭证提供者工厂 (§4.1)

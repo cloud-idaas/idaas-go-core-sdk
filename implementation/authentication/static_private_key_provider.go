@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aliyun/idaas-go-core-sdk/credential"
-	"github.com/aliyun/idaas-go-core-sdk/errors"
-	"github.com/aliyun/idaas-go-core-sdk/http"
-	"github.com/aliyun/idaas-go-core-sdk/oauth2"
-	"github.com/aliyun/idaas-go-core-sdk/util"
+	"github.com/cloud-idaas/idaas-go-core-sdk/credential"
+	"github.com/cloud-idaas/idaas-go-core-sdk/errors"
+	"github.com/cloud-idaas/idaas-go-core-sdk/http"
+	"github.com/cloud-idaas/idaas-go-core-sdk/oauth2"
+	"github.com/cloud-idaas/idaas-go-core-sdk/util"
 )
 
 // StaticPrivateKeyAssertionProvider 静态私钥断言提供者 (§5.4, §5.7)

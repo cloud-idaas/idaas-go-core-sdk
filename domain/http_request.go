@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"github.com/aliyun/idaas-go-core-sdk/enums"
+	"github.com/cloud-idaas/idaas-go-core-sdk/enums"
 	"net/url"
 )
 

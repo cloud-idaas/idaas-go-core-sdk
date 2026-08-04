@@ -7,11 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aliyun/idaas-go-core-sdk/constants"
-	"github.com/aliyun/idaas-go-core-sdk/domain"
-	"github.com/aliyun/idaas-go-core-sdk/enums"
-	"github.com/aliyun/idaas-go-core-sdk/errors"
-	"github.com/aliyun/idaas-go-core-sdk/http"
+	"github.com/cloud-idaas/idaas-go-core-sdk/constants"
+	"github.com/cloud-idaas/idaas-go-core-sdk/domain"
+	"github.com/cloud-idaas/idaas-go-core-sdk/enums"
+	"github.com/cloud-idaas/idaas-go-core-sdk/errors"
+	"github.com/cloud-idaas/idaas-go-core-sdk/http"
 )
 
 // GcpVmOidcTokenProvider Google Cloud VM OIDC Token 提供者

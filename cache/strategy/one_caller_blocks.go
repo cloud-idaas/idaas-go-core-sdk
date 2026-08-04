@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aliyun/idaas-go-core-sdk/cache"
+	"github.com/cloud-idaas/idaas-go-core-sdk/cache"
 )
 
 // OneCallerBlocksPrefetchStrategy 单调用者阻塞预取策略 (§7.5.1)

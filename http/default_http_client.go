@@ -10,10 +10,10 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/aliyun/idaas-go-core-sdk/constants"
-	"github.com/aliyun/idaas-go-core-sdk/domain"
-	"github.com/aliyun/idaas-go-core-sdk/enums"
-	"github.com/aliyun/idaas-go-core-sdk/errors"
+	"github.com/cloud-idaas/idaas-go-core-sdk/constants"
+	"github.com/cloud-idaas/idaas-go-core-sdk/domain"
+	"github.com/cloud-idaas/idaas-go-core-sdk/enums"
+	"github.com/cloud-idaas/idaas-go-core-sdk/errors"
 )
 
 // DefaultHttpClient 默认 HTTP 客户端实现 (§9.4)

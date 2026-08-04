@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aliyun/idaas-go-core-sdk/cache"
-	"github.com/aliyun/idaas-go-core-sdk/credential"
-	"github.com/aliyun/idaas-go-core-sdk/enums"
+	"github.com/cloud-idaas/idaas-go-core-sdk/cache"
+	"github.com/cloud-idaas/idaas-go-core-sdk/credential"
+	"github.com/cloud-idaas/idaas-go-core-sdk/enums"
 )
 
 // mockTestCredential is a mock implementation of IDaaSCredential for testing

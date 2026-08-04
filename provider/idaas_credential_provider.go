@@ -1,6 +1,6 @@
 package provider
 
-import "github.com/aliyun/idaas-go-core-sdk/credential"
+import "github.com/cloud-idaas/idaas-go-core-sdk/credential"
 
 // IDaaSCredentialProvider 凭证提供者接口 (§4.2.1)
 type IDaaSCredentialProvider interface {

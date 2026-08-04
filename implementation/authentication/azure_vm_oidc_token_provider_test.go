@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aliyun/idaas-go-core-sdk/constants"
-	"github.com/aliyun/idaas-go-core-sdk/domain"
-	"github.com/aliyun/idaas-go-core-sdk/enums"
+	"github.com/cloud-idaas/idaas-go-core-sdk/constants"
+	"github.com/cloud-idaas/idaas-go-core-sdk/domain"
+	"github.com/cloud-idaas/idaas-go-core-sdk/enums"
 )
 
 // mockAzureHttpClient 用于捕获请求参数并返回预设响应，实现 http.HttpClient 接口
