@@ -3,6 +3,7 @@ package plugin
 import (
 	"sync"
 
+	"github.com/cloud-idaas/idaas-go-core-sdk/constants"
 	"github.com/cloud-idaas/idaas-go-core-sdk/errors"
 	"github.com/cloud-idaas/idaas-go-core-sdk/provider"
 )
@@ -37,10 +38,10 @@ func (r *PluginRegistry) Register(p provider.PluginCredentialProvider) error {
 
 	name := p.GetName()
 	if name == "" {
-		return errors.NewConfigError("PluginNameEmpty", "Plugin GetName() returned empty string", nil)
+		return errors.NewConfigError(constants.PluginNameEmpty, "Plugin GetName() returned empty string", nil)
 	}
 	if _, exists := r.plugins[name]; exists {
-		return errors.NewConfigError("PluginAlreadyRegistered", "Plugin already registered: "+name, nil)
+		return errors.NewConfigError(constants.PluginAlreadyRegistered, "Plugin already registered: "+name, nil)
 	}
 
 	r.plugins[name] = p
@@ -54,7 +55,7 @@ func (r *PluginRegistry) GetPlugin(name string) (provider.PluginCredentialProvid
 
 	p, ok := r.plugins[name]
 	if !ok {
-		return nil, errors.NewConfigError("PluginNotFound", "Plugin not found: "+name, nil)
+		return nil, errors.NewConfigError(constants.PluginNotFound, "Plugin not found: "+name, nil)
 	}
 
 	return p, nil
@@ -66,7 +67,7 @@ func (r *PluginRegistry) Unregister(name string) error {
 	defer r.mu.Unlock()
 
 	if _, exists := r.plugins[name]; !exists {
-		return errors.NewConfigError("PluginNotFound", "Plugin not found: "+name, nil)
+		return errors.NewConfigError(constants.PluginNotFound, "Plugin not found: "+name, nil)
 	}
 
 	delete(r.plugins, name)

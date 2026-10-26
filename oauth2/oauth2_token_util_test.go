@@ -1,6 +1,7 @@
 package oauth2
 
 import (
+	"context"
 	"encoding/json"
 	stderrors "errors"
 	"net/http"
@@ -23,6 +24,11 @@ func (m *MockHttpClient) Execute(request *domain.HttpRequest) (*domain.HttpRespo
 		return nil, m.Error
 	}
 	return m.Response, nil
+}
+
+// ExecuteContext 实现 http.HttpClient.ExecuteContext (M8),测试 mock 忽略 ctx。
+func (m *MockHttpClient) ExecuteContext(_ context.Context, request *domain.HttpRequest) (*domain.HttpResponse, error) {
+	return m.Execute(request)
 }
 
 func (m *MockHttpClient) Get(url string, headers map[string]string) (*domain.HttpResponse, error) {
@@ -206,6 +212,11 @@ func (c *headerCapturingClient) Execute(req *domain.HttpRequest) (*domain.HttpRe
 		c.onCall(req)
 	}
 	return c.response, nil
+}
+
+// ExecuteContext 实现 http.HttpClient.ExecuteContext (M8),测试 mock 忽略 ctx。
+func (c *headerCapturingClient) ExecuteContext(_ context.Context, req *domain.HttpRequest) (*domain.HttpResponse, error) {
+	return c.Execute(req)
 }
 func (c *headerCapturingClient) Get(string, map[string]string) (*domain.HttpResponse, error) {
 	return c.response, nil

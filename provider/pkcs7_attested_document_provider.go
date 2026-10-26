@@ -1,7 +1,10 @@
 package provider
 
-// Pkcs7AttestedDocumentProvider PKCS7 认证文档提供者接口 (§4.2.3)
+import "context"
+
 type Pkcs7AttestedDocumentProvider interface {
-	// GetAttestedDocument 获取认证文档
 	GetAttestedDocument() (string, error)
+	// GetAttestedDocumentWithContext 获取认证文档,带 context。
+	// ctx 透传到元数据服务请求,使调用方可取消长时间挂起的元数据调用。
+	GetAttestedDocumentWithContext(ctx context.Context) (string, error)
 }

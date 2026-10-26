@@ -8,13 +8,14 @@ func TestTokenAuthnMethod(t *testing.T) {
 		method   TokenAuthnMethod
 		expected string
 	}{
-		{"None", TokenAuthnMethodNone, "none"},
 		{"ClientSecretPost", TokenAuthnMethodClientSecretPost, "client_secret_post"},
 		{"ClientSecretBasic", TokenAuthnMethodClientSecretBasic, "client_secret_basic"},
 		{"ClientSecretJwt", TokenAuthnMethodClientSecretJwt, "client_secret_jwt"},
 		{"PrivateKeyJwt", TokenAuthnMethodPrivateKeyJwt, "private_key_jwt"},
 		{"Pkcs7", TokenAuthnMethodPkcs7, "pkcs7"},
-		{"PCA", TokenAuthnMethodPCA, "pca"},
+		{"Pca", TokenAuthnMethodPca, "pca"},
+		// TokenAuthnMethodPCA 是 v0.1.0 之前的旧名，保留为 Deprecated 别名，值必须与新名一致。
+		{"PCA-alias", TokenAuthnMethodPCA, "pca"},
 		{"Oidc", TokenAuthnMethodOidc, "oidc"},
 		{"Plugin", TokenAuthnMethodPlugin, "plugin"},
 	}
@@ -71,7 +72,7 @@ func TestClientDeployEnvironmentEnum(t *testing.T) {
 		{"AlibabaCloudEci", ClientDeployEnvironmentAlibabaCloudEci, "ALIBABA_CLOUD_ECI"},
 		{"AlibabaCloudAck", ClientDeployEnvironmentAlibabaCloudAck, "ALIBABA_CLOUD_ACK"},
 		{"AwsEc2", ClientDeployEnvironmentAwsEc2, "AWS_EC2"},
-		{"AwsEsk", ClientDeployEnvironmentAwsEsk, "AWS_ESK"},
+		{"AwsEks", ClientDeployEnvironmentAwsEks, "AWS_EKS"},
 		{"GoogleVm", ClientDeployEnvironmentGoogleVm, "GOOGLE_VM"},
 		{"HuaweiCloudEcs", ClientDeployEnvironmentHuaweiCloudEcs, "HUAWEI_CLOUD_ECS"},
 		{"AzureVm", ClientDeployEnvironmentAzureVm, "AZURE_VM"},
@@ -96,7 +97,6 @@ func TestContentType(t *testing.T) {
 		{"Form", ContentTypeForm, "FORM"},
 		{"Json", ContentTypeJson, "JSON"},
 		{"Xml", ContentTypeXml, "XML"},
-		{"Raw", ContentTypeRaw, "RAW"},
 	}
 
 	for _, tt := range tests {
@@ -123,6 +123,49 @@ func TestHttpMethod(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if string(tt.method) != tt.expected {
 				t.Errorf("Expected %s to be '%s', got '%s'", tt.name, tt.expected, tt.method)
+			}
+		})
+	}
+}
+
+func TestTokenState(t *testing.T) {
+	tests := []struct {
+		name     string
+		state    TokenState
+		expected string
+	}{
+		{"Unknown", TokenStateUnknown, "UNKNOWN"},
+		{"Healthy", TokenStateHealthy, "HEALTHY"},
+		{"Expiring", TokenStateExpiring, "EXPIRING"},
+		{"Expired", TokenStateExpired, "EXPIRED"},
+		{"Refreshing", TokenStateRefreshing, "REFRESHING"},
+		{"Degraded", TokenStateDegraded, "DEGRADED"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if string(tt.state) != tt.expected {
+				t.Errorf("Expected %s to be '%s', got '%s'", tt.name, tt.expected, tt.state)
+			}
+		})
+	}
+}
+
+func TestFailureMode(t *testing.T) {
+	tests := []struct {
+		name     string
+		mode     FailureMode
+		expected string
+	}{
+		{"FailFast", FailureModeFailFast, "FAIL_FAST"},
+		{"FailOpen", FailureModeFailOpen, "FAIL_OPEN"},
+		{"FailClosed", FailureModeFailClosed, "FAIL_CLOSED"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if string(tt.mode) != tt.expected {
+				t.Errorf("Expected %s to be '%s', got '%s'", tt.name, tt.expected, tt.mode)
 			}
 		})
 	}

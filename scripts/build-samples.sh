@@ -12,7 +12,7 @@
 #   ./scripts/build-samples.sh -h                         # 帮助
 #
 # 可用 sample（4 个）：
-#   obtain_token_sample       —— 通用入口，覆盖全部 9 种 CLIENT authnMethod
+#   obtain_token_sample       —— 通用入口，覆盖全部 8 种 CLIENT authnMethod
 #   device_code_sample        —— HUMAN identity 的 Device Code 流程
 #   refresh_token_sample      —— refresh_token 续期
 #   token_exchange_sample     —— RFC 8693 token exchange

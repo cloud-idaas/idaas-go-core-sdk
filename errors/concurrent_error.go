@@ -1,6 +1,8 @@
 package errors
 
-// ConcurrentOperationError 并发操作错误 (extends ClientError) (§3.7.5)
+import "github.com/cloud-idaas/idaas-go-core-sdk/constants"
+
+// ConcurrentOperationError 并发操作错误 (extends ClientError)
 type ConcurrentOperationError struct {
 	ClientError
 }
@@ -9,7 +11,7 @@ type ConcurrentOperationError struct {
 func NewConcurrentOperationError(message string, cause error) *ConcurrentOperationError {
 	return &ConcurrentOperationError{
 		ClientError: ClientError{
-			Code:    "ConcurrentOperationFailed",
+			Code:    constants.ConcurrentOperationFailed,
 			Message: message,
 			Cause:   cause,
 		},

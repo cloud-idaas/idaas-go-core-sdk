@@ -1,6 +1,8 @@
 package constants
 
-// 认证相关常量 (§13.7)
+import "time"
+
+// 认证相关常量
 //
 // 与阿里云 Java SDK AuthenticationConstants / HttpConstants 保持一致。
 const (
@@ -20,7 +22,7 @@ const (
 	// %s 处填入 URL-encoded 的 audience JSON：{"aud": idaasInstanceId, "signingTime": <unix秒>}
 	EcsPkcs7AttestedDocumentUrlTemplate = "http://100.100.100.200/latest/dynamic/instance-identity/pkcs7?audience=%s"
 
-	// EcsMetadataServiceUrl 旧常量保留作为兼容别名（指向同一个 IMDSv2 token URL）
+	// EcsMetadataUrl 兼容别名，指向 EcsMetadataServiceUrl（同一 IMDSv2 token URL）
 	EcsMetadataUrl = EcsMetadataServiceUrl
 
 	// DefaultEcsAttestedDocumentTtlSeconds attested document 默认有效期（秒）
@@ -33,7 +35,8 @@ const (
 	// MaxEcsAttestedDocumentTtlSeconds attested document 最大有效期（秒，含）
 	MaxEcsAttestedDocumentTtlSeconds = 1314000
 
-	// DefaultScope 默认 scope
+	// DefaultScope 默认 scope（注：HUMAN Device Code 流程使用 "openid offline_access"，
+	// 定义在 implementation/authentication/human_federated_oidc_provider.go 中）
 	DefaultScope = "openid profile email"
 
 	// Ec2MetadataServiceUrl AWS EC2 元数据服务（IMDSv2）token 接口
@@ -45,15 +48,10 @@ const (
 	// DefaultEc2MetadataTokenTtlSeconds AWS EC2 IMDSv2 metadata token 默认有效期（秒）
 	DefaultEc2MetadataTokenTtlSeconds = 21600
 
-	// GcpVmIdentityTokenUrlTemplate Google Cloud VM 元数据服务身份 token 接口
-	//
+	// GcpVmIdentityTokenUrlTemplate GCP VM 元数据服务 ID token 接口。
+	// 必须携带请求头 Metadata-Flavor: Google。%s 填 URL-encoded audience（一般=IDaaS issuer endpoint）；
+	// format=full 使 token 含 VM 实例信息（project_id/instance_id/instance_name）。
 	// 参考：https://cloud.google.com/compute/docs/instances/verifying-instance-identity
-	//   GET http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity
-	//       ?audience=<audience>&format=full
-	//   必须携带请求头 Metadata-Flavor: Google
-	//
-	// %s 处填入 URL-encoded 的 audience（一般为 IDaaS issuer endpoint）。
-	// format=full 表示 token 中包含 VM 实例的详细信息（project_id / instance_id / instance_name 等）。
 	GcpVmIdentityTokenUrlTemplate = "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience=%s&format=full"
 
 	// HeaderMetadataFlavor Google Cloud 元数据服务必须携带的请求头名
@@ -62,14 +60,9 @@ const (
 	// HeaderMetadataFlavorValueGoogle Google Cloud 元数据服务必须携带的请求头值
 	HeaderMetadataFlavorValueGoogle = "Google"
 
-	// AzureVmIdentityTokenUrlTemplate Azure VM IMDS Managed Identity ID Token 接口
-	//
+	// AzureVmIdentityTokenUrlTemplate Azure VM IMDS Managed Identity ID Token 接口。
+	// 必须携带请求头 Metadata: true。%s 填 URL-encoded resource。响应 JSON 含 access_token(JWT)、expires_on。
 	// 参考：https://learn.microsoft.com/azure/active-directory/managed-identities-azure-resources/how-to-use-vm-token
-	//   GET http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=<URL-encoded resource>
-	//   必须携带请求头 Metadata: true
-	//
-	// %s 处填入 URL-encoded 的 resource。
-	// 响应体为 JSON：{"access_token":"<JWT>", "expires_on":"<unix秒字符串>", ...}
 	AzureVmIdentityTokenUrlTemplate = "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=%s"
 
 	// AzureVmManagementResource Azure VM Managed Identity 请求 token 时固定的 resource 值
@@ -85,6 +78,11 @@ const (
 	// TokenRefreshBufferSeconds Token 过期前主动刷新的缓冲时间（秒）
 	// 所有 OIDC/PKCS7 provider 统一使用此值，避免在 token 即将过期时仍返回旧值
 	TokenRefreshBufferSeconds = 600 // 10 minutes
+
+	// DefaultAzureImdsTimeout Azure IMDS Managed Identity token 请求默认超时。
+	// IMDS 本机链路通常亚秒级;5s 兼顾慢实例/网络抖动,过长会让调用方在
+	// 元数据服务异常时长时间挂起。可经 WithImdsTimeout 覆盖。
+	DefaultAzureImdsTimeout = 5 * time.Second
 
 	// DefaultHumanAuthenticateClientId HUMAN 身份认证（Device Code 流程）默认 clientId
 	// 与阿里云 Java SDK 保持一致

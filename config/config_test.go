@@ -157,7 +157,7 @@ func TestConfigValidatorValidateMissingAuthnConfig(t *testing.T) {
 	}
 }
 
-// TestConfigValidator_AllAuthnMethodBranches 覆盖 Important #15 修复：
+// TestConfigValidator_AllAuthnMethodBranches 覆盖：
 // 校验器必须对每个已支持的 authnMethod 都执行相应的字段校验。
 func TestConfigValidator_AllAuthnMethodBranches(t *testing.T) {
 	baseConfig := func() *IDaaSClientConfig {
@@ -194,11 +194,11 @@ func TestConfigValidator_AllAuthnMethodBranches(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "none 模式无需额外校验",
+			name: "none 模式应被拒绝 (常量已删除,用字面量验证 default 分支仍拒绝)",
 			mutate: func(c *IDaaSClientConfig) {
-				c.AuthnConfiguration.AuthnMethod = enums.TokenAuthnMethodNone
+				c.AuthnConfiguration.AuthnMethod = "none"
 			},
-			expectError: false,
+			expectError: true,
 		},
 		{
 			name: "pkcs7 缺少 ApplicationFederatedCredentialName",
@@ -303,11 +303,40 @@ func TestConfigValidator_AllAuthnMethodBranches(t *testing.T) {
 			},
 			expectError: false,
 		},
+		{
+			name: "oidc + COMPUTER 缺少 oidcTokenFilePath 和 oidcTokenFilePathEnvVarName",
+			mutate: func(c *IDaaSClientConfig) {
+				c.AuthnConfiguration.AuthnMethod = enums.TokenAuthnMethodOidc
+				c.AuthnConfiguration.ApplicationFederatedCredentialName = "fed"
+				c.AuthnConfiguration.ClientDeployEnvironment = enums.ClientDeployEnvironmentComputer
+			},
+			expectError: true,
+		},
+		{
+			name: "oidc + COMPUTER 配置了 oidcTokenFilePath 通过",
+			mutate: func(c *IDaaSClientConfig) {
+				c.AuthnConfiguration.AuthnMethod = enums.TokenAuthnMethodOidc
+				c.AuthnConfiguration.ApplicationFederatedCredentialName = "fed"
+				c.AuthnConfiguration.ClientDeployEnvironment = enums.ClientDeployEnvironmentComputer
+				c.AuthnConfiguration.OidcTokenFilePath = "/tmp/token"
+			},
+			expectError: false,
+		},
+		{
+			name: "oidc + COMPUTER 配置了 oidcTokenFilePathEnvVarName 通过",
+			mutate: func(c *IDaaSClientConfig) {
+				c.AuthnConfiguration.AuthnMethod = enums.TokenAuthnMethodOidc
+				c.AuthnConfiguration.ApplicationFederatedCredentialName = "fed"
+				c.AuthnConfiguration.ClientDeployEnvironment = enums.ClientDeployEnvironmentComputer
+				c.AuthnConfiguration.OidcTokenFilePathEnvVarName = "OIDC_TOKEN_FILE_PATH"
+			},
+			expectError: false,
+		},
 
 		{
 			name: "pca 缺少 PrivateKeyEnvVarName",
 			mutate: func(c *IDaaSClientConfig) {
-				c.AuthnConfiguration.AuthnMethod = enums.TokenAuthnMethodPCA
+				c.AuthnConfiguration.AuthnMethod = enums.TokenAuthnMethodPca
 				c.AuthnConfiguration.ApplicationFederatedCredentialName = "pca_fed"
 				c.AuthnConfiguration.ClientX509Certificate = "PEM_CERT"
 				c.AuthnConfiguration.X509CertChains = "PEM_CHAIN"
@@ -317,7 +346,7 @@ func TestConfigValidator_AllAuthnMethodBranches(t *testing.T) {
 		{
 			name: "pca 缺少 ApplicationFederatedCredentialName",
 			mutate: func(c *IDaaSClientConfig) {
-				c.AuthnConfiguration.AuthnMethod = enums.TokenAuthnMethodPCA
+				c.AuthnConfiguration.AuthnMethod = enums.TokenAuthnMethodPca
 				c.AuthnConfiguration.PrivateKeyEnvVarName = "K"
 				c.AuthnConfiguration.ClientX509Certificate = "PEM_CERT"
 				c.AuthnConfiguration.X509CertChains = "PEM_CHAIN"
@@ -327,7 +356,7 @@ func TestConfigValidator_AllAuthnMethodBranches(t *testing.T) {
 		{
 			name: "pca 缺少 ClientX509Certificate",
 			mutate: func(c *IDaaSClientConfig) {
-				c.AuthnConfiguration.AuthnMethod = enums.TokenAuthnMethodPCA
+				c.AuthnConfiguration.AuthnMethod = enums.TokenAuthnMethodPca
 				c.AuthnConfiguration.PrivateKeyEnvVarName = "K"
 				c.AuthnConfiguration.ApplicationFederatedCredentialName = "pca_fed"
 				c.AuthnConfiguration.X509CertChains = "PEM_CHAIN"
@@ -337,7 +366,7 @@ func TestConfigValidator_AllAuthnMethodBranches(t *testing.T) {
 		{
 			name: "pca 缺少 X509CertChains",
 			mutate: func(c *IDaaSClientConfig) {
-				c.AuthnConfiguration.AuthnMethod = enums.TokenAuthnMethodPCA
+				c.AuthnConfiguration.AuthnMethod = enums.TokenAuthnMethodPca
 				c.AuthnConfiguration.PrivateKeyEnvVarName = "K"
 				c.AuthnConfiguration.ApplicationFederatedCredentialName = "pca_fed"
 				c.AuthnConfiguration.ClientX509Certificate = "PEM_CERT"
@@ -347,7 +376,7 @@ func TestConfigValidator_AllAuthnMethodBranches(t *testing.T) {
 		{
 			name: "pca 填齐全部 4 个字段通过",
 			mutate: func(c *IDaaSClientConfig) {
-				c.AuthnConfiguration.AuthnMethod = enums.TokenAuthnMethodPCA
+				c.AuthnConfiguration.AuthnMethod = enums.TokenAuthnMethodPca
 				c.AuthnConfiguration.PrivateKeyEnvVarName = "K"
 				c.AuthnConfiguration.ApplicationFederatedCredentialName = "pca_fed"
 				c.AuthnConfiguration.ClientX509Certificate = "PEM_CERT"
@@ -367,6 +396,7 @@ func TestConfigValidator_AllAuthnMethodBranches(t *testing.T) {
 			mutate: func(c *IDaaSClientConfig) {
 				c.AuthnConfiguration.AuthnMethod = enums.TokenAuthnMethodPlugin
 				c.AuthnConfiguration.PluginName = "alibabacloudPluginCredentialProvider"
+				c.OpenApiEndpoint = "https://example.com/api"
 			},
 			expectError: false,
 		},
@@ -416,5 +446,66 @@ func TestConfigReader_LoadFromEnv_MissingRequired(t *testing.T) {
 	_, err := reader.LoadFromEnv()
 	if err == nil {
 		t.Error("expected error when required env vars are missing")
+	}
+}
+
+// TestNormalizeTrimmedFields_TrimsIdentityFields_PreservesScope 验证:
+// Validate 入口对身份字段与 scope 应用 TrimSpace 写回(仅去首尾,内部空格保留)。
+// 纯空白身份值应被 ValidateNotBlank 拦截;合法值首尾空格被清理;scope 内部分隔符空格保留。
+func TestNormalizeTrimmedFields_TrimsIdentityFields_PreservesScope(t *testing.T) {
+	cfg := &IDaaSClientConfig{
+		ClientId:       "  test_client_id  ",
+		InstanceId:     "\ttest_instance_id\n",
+		IssuerEndpoint: " https://test.example.com/oauth2 ",
+		TokenEndpoint:  " https://test.example.com/oauth2/token ",
+		Scope:          " aud1|read aud1|write ",
+		AuthnConfiguration: &IdentityAuthenticationConfiguration{
+			AuthnMethod:            enums.TokenAuthnMethodClientSecretPost,
+			IdentityType:           enums.AuthenticationIdentityClient,
+			ClientSecretEnvVarName: "CLOUD_IDAAS_CLIENT_SECRET",
+		},
+	}
+
+	validator := NewConfigValidator()
+	if err := validator.Validate(cfg); err != nil {
+		t.Fatalf("Validate should succeed after trim, got: %v", err)
+	}
+
+	if cfg.ClientId != "test_client_id" {
+		t.Errorf("ClientId not trimmed: %q", cfg.ClientId)
+	}
+	if cfg.InstanceId != "test_instance_id" {
+		t.Errorf("InstanceId not trimmed: %q", cfg.InstanceId)
+	}
+	if cfg.IssuerEndpoint != "https://test.example.com/oauth2" {
+		t.Errorf("IssuerEndpoint not trimmed: %q", cfg.IssuerEndpoint)
+	}
+	if cfg.TokenEndpoint != "https://test.example.com/oauth2/token" {
+		t.Errorf("TokenEndpoint not trimmed: %q", cfg.TokenEndpoint)
+	}
+	// scope 仅去首尾,内部多值分隔符空格保留(多 scope 项以空格分隔,同 audience 多 permission)。
+	if cfg.Scope != "aud1|read aud1|write" {
+		t.Errorf("Scope should preserve internal spaces, got: %q", cfg.Scope)
+	}
+}
+
+// TestNormalizeTrimmedFields_RejectsWhitespaceIdentity 验证纯空白身份字段被拦截。
+func TestNormalizeTrimmedFields_RejectsWhitespaceIdentity(t *testing.T) {
+	for _, bad := range []string{" ", "\t\n", "  "} {
+		cfg := &IDaaSClientConfig{
+			ClientId:       bad,
+			InstanceId:     "test_instance_id",
+			IssuerEndpoint: "https://test.example.com/oauth2",
+			TokenEndpoint:  "https://test.example.com/oauth2/token",
+			AuthnConfiguration: &IdentityAuthenticationConfiguration{
+				AuthnMethod:            enums.TokenAuthnMethodClientSecretPost,
+				IdentityType:           enums.AuthenticationIdentityClient,
+				ClientSecretEnvVarName: "CLOUD_IDAAS_CLIENT_SECRET",
+			},
+		}
+		validator := NewConfigValidator()
+		if err := validator.Validate(cfg); err == nil {
+			t.Errorf("Validate should reject whitespace-only ClientId %q", bad)
+		}
 	}
 }

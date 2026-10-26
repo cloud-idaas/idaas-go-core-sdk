@@ -1,0 +1,74 @@
+name: Bug report
+description: Report a defect in the IDaaS Go Core SDK
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report! Before submitting,
+        please search existing issues to avoid duplicates.
+
+        **Do not include real credentials, tokens, client secrets, or private
+        keys.** Replace endpoints with `example.com` placeholders.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: A concise description of the problem.
+    validations:
+      required: true
+  - type: input
+    id: sdk-version
+    attributes:
+      label: SDK version
+      description: Output of `http.GetSdkVersion()`, or the release tag / commit you built from.
+      placeholder: "e.g. v0.3.0 or 0.0.0-dev (built from commit abc1234)"
+    validations:
+      required: true
+  - type: input
+    id: go-version
+    attributes:
+      label: Go version
+      description: Output of `go version`.
+      placeholder: "e.g. go1.22.2 linux/amd64"
+    validations:
+      required: true
+  - type: dropdown
+    id: identity-type
+    attributes:
+      label: Identity type
+      options:
+        - CLIENT (machine-to-machine)
+        - HUMAN (device code)
+        - Token exchange
+        - Other / not sure
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Minimal reproduction. Redact all secrets.
+      render: go
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include error messages / stack traces (sanitized).
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration (sanitized)
+      description: The relevant `authnConfiguration` / `httpConfiguration`, with secrets redacted.
+      render: json

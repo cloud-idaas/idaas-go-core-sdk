@@ -1,0 +1,19 @@
+# gitleaks 白名单：仅豁免以下三类"形似密钥的假凭证"，其余内容仍按默认规则全量扫描。
+#
+# 背景：generic-api-key 是基于熵值的启发式规则，以下测试夹具/文档示例恰好命中：
+#   1) k8s_federation —— README/示例文档里 applicationFederatedCredentialName 的占位示例值；
+#      其中 3 处位于已发布的历史提交（alpha 期 README），文件已改写也无法消除历史命中，只能放行。
+#   2) eyJhbGciOiJSUzI1NiJ9.secret —— logger 脱敏测试的输入夹具（伪造的 JWT 片段）。
+#   3) test_secret_that_is_long_enough_for_hs256 —— factory 测试的环境变量夹具。
+# 三者均非真实凭证（全仓密钥终审已确认）。新增豁免必须附理由，禁止按路径/规则整类放行。
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "verified test fixtures and doc placeholders (non-sensitive)"
+regexes = [
+  '''k8s_federation''',
+  '''eyJhbGciOiJSUzI1NiJ9\.secret''',
+  '''test_secret_that_is_long_enough_for_hs256''',
+]

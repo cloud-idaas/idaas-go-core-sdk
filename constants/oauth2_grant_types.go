@@ -1,9 +1,8 @@
 package constants
 
-// Grant Type 值常量 (§13.1.2)
+// Grant Type 值常量
 const (
 	GrantTypeClientCredentials = "client_credentials"
-	GrantTypeAuthorizationCode = "authorization_code"
 	GrantTypeRefreshToken      = "refresh_token"
 	GrantTypeDeviceCode        = "urn:ietf:params:oauth:grant-type:device_code"
 	GrantTypeTokenExchange     = "urn:ietf:params:oauth:grant-type:token-exchange"

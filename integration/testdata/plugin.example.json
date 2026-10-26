@@ -1,0 +1,20 @@
+{
+  "_comment": "PLUGIN 认证模板。对应集成用例是 TestPluginAuthn——它直接改写 client_secret_basic 配置的副本并进程内注册名为 integration_echo 的回声插件，不读取本文件；本模板供真实插件（SDK 不发起 HTTP、由插件自行取票）接入时参考",
+  "_comment_pluginName": "必须与插件实现 GetName() 返回值一致；集成测试的注册名是 integration_echo",
+  "idaasInstanceId": "idaas_your_instance_id",
+  "clientId": "app_your_client_id",
+  "issuer": "https://your-instance.example.com/api/v2/iauths_system/oauth2",
+  "tokenEndpoint": "https://your-instance.example.com/api/v2/iauths_system/oauth2/token",
+  "scope": "urn:cloud:idaas:pam|urn:alibaba:idaas:scope:cloud_account_resource:manage_all",
+  "openApiEndpoint": "openapi.example.com",
+  "developerApiEndpoint": "developerapi.example.com",
+  "httpConfiguration": {
+    "connectTimeout": 5000,
+    "readTimeout": 10000
+  },
+  "authnConfiguration": {
+    "identityType": "CLIENT",
+    "authnMethod": "PLUGIN",
+    "pluginName": "integration_echo"
+  }
+}

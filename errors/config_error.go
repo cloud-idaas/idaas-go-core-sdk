@@ -1,6 +1,6 @@
 package errors
 
-// ConfigError 配置错误 (extends ClientError) (§3.7.4)
+// ConfigError 配置错误 (extends ClientError)
 type ConfigError struct {
 	ClientError
 }

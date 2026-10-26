@@ -2,7 +2,7 @@ package domain
 
 import "encoding/json"
 
-// ErrResponse 错误响应结构体 (§3.4)
+// ErrResponse 错误响应结构体
 // 支持双格式 JSON 解析：标准 OAuth2 错误格式和 IDaaS 自定义格式
 type ErrResponse struct {
 	Error            string `json:"error,omitempty"`

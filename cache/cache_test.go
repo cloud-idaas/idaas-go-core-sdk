@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -10,8 +11,6 @@ import (
 
 	"github.com/cloud-idaas/idaas-go-core-sdk/enums"
 )
-
-// ==================== Clock 测试 ====================
 
 // TestSystemClock_Now 测试 SystemClock 的 Now 方法
 func TestSystemClock_Now(t *testing.T) {
@@ -39,8 +38,6 @@ func TestSystemClock_MultipleCalls(t *testing.T) {
 		t.Error("第二次调用 Now() 应该晚于第一次")
 	}
 }
-
-// ==================== Mock Clock 用于测试 ====================
 
 // MockClock 模拟时钟，用于测试
 type MockClock struct {
@@ -70,15 +67,12 @@ func (c *MockClock) Advance(d time.Duration) {
 	c.currentTime = c.currentTime.Add(d)
 }
 
-// ==================== RefreshResult 测试 ====================
-
 // TestRefreshResult_IsExpired_NotExpired 测试未过期的情况
 func TestRefreshResult_IsExpired_NotExpired(t *testing.T) {
 	future := time.Now().Add(1 * time.Hour)
 	result := &RefreshResult[string]{
 		Value:     "test",
 		ExpiresAt: future,
-		Error:     nil,
 	}
 
 	if result.IsExpired() {
@@ -92,7 +86,6 @@ func TestRefreshResult_IsExpired_Expired(t *testing.T) {
 	result := &RefreshResult[string]{
 		Value:     "test",
 		ExpiresAt: past,
-		Error:     nil,
 	}
 
 	if !result.IsExpired() {
@@ -106,7 +99,6 @@ func TestRefreshResult_IsExpired_ExactlyNow(t *testing.T) {
 	result := &RefreshResult[string]{
 		Value:     "test",
 		ExpiresAt: now,
-		Error:     nil,
 	}
 
 	// 由于时间精度，可能需要稍微等待
@@ -122,7 +114,6 @@ func TestRefreshResult_WillSoonExpire_NotSoon(t *testing.T) {
 	result := &RefreshResult[string]{
 		Value:     "test",
 		ExpiresAt: future,
-		Error:     nil,
 	}
 
 	threshold := 5 * time.Minute
@@ -138,7 +129,6 @@ func TestRefreshResult_WillSoonExpire_Soon(t *testing.T) {
 	result := &RefreshResult[string]{
 		Value:     "test",
 		ExpiresAt: future,
-		Error:     nil,
 	}
 
 	threshold := 5 * time.Minute
@@ -153,7 +143,6 @@ func TestRefreshResult_WillSoonExpire_AlreadyExpired(t *testing.T) {
 	result := &RefreshResult[string]{
 		Value:     "test",
 		ExpiresAt: past,
-		Error:     nil,
 	}
 
 	threshold := 5 * time.Minute
@@ -169,7 +158,6 @@ func TestRefreshResult_WithDifferentTypes(t *testing.T) {
 	intResult := &RefreshResult[int]{
 		Value:     42,
 		ExpiresAt: time.Now().Add(1 * time.Hour),
-		Error:     nil,
 	}
 	if intResult.Value != 42 {
 		t.Errorf("int 类型值错误: 期望 42, 得到 %d", intResult.Value)
@@ -183,35 +171,15 @@ func TestRefreshResult_WithDifferentTypes(t *testing.T) {
 	structResult := &RefreshResult[TestData]{
 		Value:     TestData{Name: "test", Age: 25},
 		ExpiresAt: time.Now().Add(1 * time.Hour),
-		Error:     nil,
 	}
 	if structResult.Value.Name != "test" || structResult.Value.Age != 25 {
 		t.Errorf("struct 类型值错误: %+v", structResult.Value)
 	}
 }
 
-// TestRefreshResult_WithError 测试带错误的结果
-func TestRefreshResult_WithError(t *testing.T) {
-	testErr := errors.New("test error")
-	result := &RefreshResult[string]{
-		Value:     "",
-		ExpiresAt: time.Now().Add(1 * time.Hour),
-		Error:     testErr,
-	}
-
-	if result.Error == nil {
-		t.Error("期望有错误，但得到 nil")
-	}
-	if result.Error.Error() != "test error" {
-		t.Errorf("错误消息不匹配: 期望 'test error', 得到 '%s'", result.Error.Error())
-	}
-}
-
-// ==================== CachedResultSupplier 测试 ====================
-
 // TestNewCachedResultSupplier 测试创建 CachedResultSupplier
 func TestNewCachedResultSupplier(t *testing.T) {
-	refreshFunc := func() (*RefreshResult[string], error) {
+	refreshFunc := func(context.Context) (*RefreshResult[string], error) {
 		return &RefreshResult[string]{
 			Value:     "test",
 			ExpiresAt: time.Now().Add(1 * time.Hour),
@@ -221,7 +189,6 @@ func TestNewCachedResultSupplier(t *testing.T) {
 	supplier := NewCachedResultSupplier(
 		refreshFunc,
 		enums.StaleValueBehaviorBlock,
-		5*time.Minute,
 	)
 
 	if supplier == nil {
@@ -234,19 +201,28 @@ func TestNewCachedResultSupplier(t *testing.T) {
 		t.Errorf("staleBehavior 不匹配: 期望 %s, 得到 %s",
 			enums.StaleValueBehaviorBlock, supplier.staleBehavior)
 	}
-	if supplier.prefetchThreshold != 5*time.Minute {
-		t.Errorf("prefetchThreshold 不匹配: 期望 %v, 得到 %v",
-			5*time.Minute, supplier.prefetchThreshold)
+	// 旧版第三参 prefetchThreshold 已删除(死代码),
+	// 新增 baseCtx 字段(默认 nil,运行时 effectiveBaseContext 回退 Background 零回归;
+	// factory 生产路径经 WithBaseContext 注入随 Reset 取消的 ctx)。
+	if supplier.baseCtx != nil {
+		t.Errorf("baseCtx 默认应为 nil(测试零回归,生产经 WithBaseContext 注入), 得到 %v",
+			supplier.baseCtx)
 	}
-	if supplier.clock == nil {
-		t.Error("clock 未正确初始化")
+	// clock 默认为 nil，now() 回退到 GetClock()。
+	// 验证 now() 能正常返回时间即可。
+	if supplier.now().IsZero() {
+		t.Error("now() returned zero time; clock not correctly initialized")
 	}
 }
 
 // TestCachedResultSupplier_Get_NoCache 测试没有缓存时的获取
 func TestCachedResultSupplier_Get_NoCache(t *testing.T) {
 	callCount := 0
-	refreshFunc := func() (*RefreshResult[string], error) {
+	var mu sync.Mutex
+
+	refreshFunc := func(context.Context) (*RefreshResult[string], error) {
+		mu.Lock()
+		defer mu.Unlock()
 		callCount++
 		return &RefreshResult[string]{
 			Value:     "fresh-value",
@@ -257,7 +233,6 @@ func TestCachedResultSupplier_Get_NoCache(t *testing.T) {
 	supplier := NewCachedResultSupplier(
 		refreshFunc,
 		enums.StaleValueBehaviorBlock,
-		5*time.Minute,
 	)
 
 	result, err := supplier.Get()
@@ -268,15 +243,23 @@ func TestCachedResultSupplier_Get_NoCache(t *testing.T) {
 	if result.Value != "fresh-value" {
 		t.Errorf("值不匹配: 期望 'fresh-value', 得到 '%s'", result.Value)
 	}
-	if callCount != 1 {
-		t.Errorf("refreshFunc 应该被调用 1 次，实际调用 %d 次", callCount)
+	mu.Lock()
+	finalCallCount := callCount
+	mu.Unlock()
+
+	if finalCallCount != 1 {
+		t.Errorf("refreshFunc 应该被调用 1 次，实际调用 %d 次", finalCallCount)
 	}
 }
 
 // TestCachedResultSupplier_Get_CacheHit 测试缓存命中
 func TestCachedResultSupplier_Get_CacheHit(t *testing.T) {
 	callCount := 0
-	refreshFunc := func() (*RefreshResult[string], error) {
+	var mu sync.Mutex
+
+	refreshFunc := func(context.Context) (*RefreshResult[string], error) {
+		mu.Lock()
+		defer mu.Unlock()
 		callCount++
 		return &RefreshResult[string]{
 			Value:     "cached-value",
@@ -287,7 +270,6 @@ func TestCachedResultSupplier_Get_CacheHit(t *testing.T) {
 	supplier := NewCachedResultSupplier(
 		refreshFunc,
 		enums.StaleValueBehaviorBlock,
-		5*time.Minute,
 	)
 
 	// 第一次调用，建立缓存
@@ -305,8 +287,12 @@ func TestCachedResultSupplier_Get_CacheHit(t *testing.T) {
 	if result1.Value != result2.Value {
 		t.Error("两次调用应该返回相同的缓存值")
 	}
-	if callCount != 1 {
-		t.Errorf("refreshFunc 应该只被调用 1 次，实际调用 %d 次", callCount)
+	mu.Lock()
+	finalCallCount := callCount
+	mu.Unlock()
+
+	if finalCallCount != 1 {
+		t.Errorf("refreshFunc 应该只被调用 1 次，实际调用 %d 次", finalCallCount)
 	}
 }
 
@@ -315,7 +301,7 @@ func TestCachedResultSupplier_Get_Expired_Block(t *testing.T) {
 	callCount := 0
 	var mu sync.Mutex
 
-	refreshFunc := func() (*RefreshResult[string], error) {
+	refreshFunc := func(context.Context) (*RefreshResult[string], error) {
 		mu.Lock()
 		defer mu.Unlock()
 		callCount++
@@ -329,7 +315,6 @@ func TestCachedResultSupplier_Get_Expired_Block(t *testing.T) {
 	supplier := NewCachedResultSupplier(
 		refreshFunc,
 		enums.StaleValueBehaviorBlock,
-		5*time.Minute,
 	)
 
 	// 第一次调用，建立缓存
@@ -359,7 +344,7 @@ func TestCachedResultSupplier_Get_Expired_Allow(t *testing.T) {
 	callCount := 0
 	var mu sync.Mutex
 
-	refreshFunc := func() (*RefreshResult[string], error) {
+	refreshFunc := func(context.Context) (*RefreshResult[string], error) {
 		mu.Lock()
 		defer mu.Unlock()
 		callCount++
@@ -373,7 +358,6 @@ func TestCachedResultSupplier_Get_Expired_Allow(t *testing.T) {
 	supplier := NewCachedResultSupplier(
 		refreshFunc,
 		enums.StaleValueBehaviorAllow,
-		5*time.Minute,
 	)
 
 	// 第一次调用，建立缓存
@@ -412,7 +396,7 @@ func TestCachedResultSupplier_Get_Expired_Refresh(t *testing.T) {
 	callCount := 0
 	var mu sync.Mutex
 
-	refreshFunc := func() (*RefreshResult[string], error) {
+	refreshFunc := func(context.Context) (*RefreshResult[string], error) {
 		mu.Lock()
 		defer mu.Unlock()
 		callCount++
@@ -426,7 +410,6 @@ func TestCachedResultSupplier_Get_Expired_Refresh(t *testing.T) {
 	supplier := NewCachedResultSupplier(
 		refreshFunc,
 		enums.StaleValueBehaviorRefresh,
-		5*time.Minute,
 	)
 
 	// 第一次调用，建立缓存
@@ -456,7 +439,7 @@ func TestCachedResultSupplier_Get_Prefetch(t *testing.T) {
 	callCount := 0
 	var mu sync.Mutex
 
-	refreshFunc := func() (*RefreshResult[string], error) {
+	refreshFunc := func(context.Context) (*RefreshResult[string], error) {
 		mu.Lock()
 		defer mu.Unlock()
 		callCount++
@@ -470,7 +453,6 @@ func TestCachedResultSupplier_Get_Prefetch(t *testing.T) {
 	supplier := NewCachedResultSupplier(
 		refreshFunc,
 		enums.StaleValueBehaviorBlock,
-		150*time.Millisecond, // 预取阈值：150毫秒
 	)
 
 	// 第一次调用，建立缓存（过期时间 200 毫秒后）
@@ -503,7 +485,7 @@ func TestCachedResultSupplier_Get_Prefetch(t *testing.T) {
 // TestCachedResultSupplier_Invalidate 测试缓存失效
 func TestCachedResultSupplier_Invalidate(t *testing.T) {
 	callCount := 0
-	refreshFunc := func() (*RefreshResult[string], error) {
+	refreshFunc := func(context.Context) (*RefreshResult[string], error) {
 		callCount++
 		return &RefreshResult[string]{
 			Value:     fmt.Sprintf("value-%d", callCount),
@@ -514,7 +496,6 @@ func TestCachedResultSupplier_Invalidate(t *testing.T) {
 	supplier := NewCachedResultSupplier(
 		refreshFunc,
 		enums.StaleValueBehaviorBlock,
-		5*time.Minute,
 	)
 
 	// 第一次调用，建立缓存
@@ -538,14 +519,13 @@ func TestCachedResultSupplier_Invalidate(t *testing.T) {
 
 // TestCachedResultSupplier_RefreshError 测试刷新失败的情况
 func TestCachedResultSupplier_RefreshError(t *testing.T) {
-	refreshFunc := func() (*RefreshResult[string], error) {
+	refreshFunc := func(context.Context) (*RefreshResult[string], error) {
 		return nil, errors.New("refresh failed")
 	}
 
 	supplier := NewCachedResultSupplier(
 		refreshFunc,
 		enums.StaleValueBehaviorBlock,
-		5*time.Minute,
 	)
 
 	result, err := supplier.Get()
@@ -562,10 +542,12 @@ func TestCachedResultSupplier_RefreshError(t *testing.T) {
 func TestCachedResultSupplier_ConcurrentAccess(t *testing.T) {
 	callCount := 0
 	var mu sync.Mutex
-	refreshFunc := func() (*RefreshResult[string], error) {
+	refreshFunc := func(context.Context) (*RefreshResult[string], error) {
 		mu.Lock()
-		defer mu.Unlock()
 		callCount++
+		mu.Unlock()
+		// 模拟网络 IO，让并发 goroutine 有机会进入 singleflight 等待
+		time.Sleep(50 * time.Millisecond)
 		return &RefreshResult[string]{
 			Value:     "concurrent-value",
 			ExpiresAt: time.Now().Add(1 * time.Hour),
@@ -575,7 +557,6 @@ func TestCachedResultSupplier_ConcurrentAccess(t *testing.T) {
 	supplier := NewCachedResultSupplier(
 		refreshFunc,
 		enums.StaleValueBehaviorBlock,
-		5*time.Minute,
 	)
 
 	// 并发调用 Get
@@ -621,7 +602,7 @@ func TestCachedResultSupplier_WithMockClock(t *testing.T) {
 	baseTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
 	mockClock := NewMockClock(baseTime)
 
-	refreshFunc := func() (*RefreshResult[string], error) {
+	refreshFunc := func(context.Context) (*RefreshResult[string], error) {
 		return &RefreshResult[string]{
 			Value:     "test",
 			ExpiresAt: mockClock.Now().Add(10 * time.Minute),
@@ -631,7 +612,6 @@ func TestCachedResultSupplier_WithMockClock(t *testing.T) {
 	supplier := NewCachedResultSupplier(
 		refreshFunc,
 		enums.StaleValueBehaviorBlock,
-		5*time.Minute,
 	)
 	supplier.clock = mockClock
 
@@ -651,17 +631,15 @@ func TestCachedResultSupplier_WithMockClock(t *testing.T) {
 	}
 }
 
-// ==================== singleflight + 锁外 IO 行为验证 ====================
-
 // TestCachedResultSupplier_Singleflight_NoCache 验证缓存为空时 N 个并发调用方
-// 只会触发 1 次 refreshFunc（singleflight 合并）。这是 Critical #1 修复的核心契约。
+// 只会触发 1 次 refreshFunc（singleflight 合并）。这是。
 func TestCachedResultSupplier_Singleflight_NoCache(t *testing.T) {
 	var callCount int32
 	var refreshStarted, refreshDone sync.WaitGroup
 	refreshStarted.Add(1)
 	refreshDone.Add(1)
 
-	refreshFunc := func() (*RefreshResult[string], error) {
+	refreshFunc := func(context.Context) (*RefreshResult[string], error) {
 		atomic.AddInt32(&callCount, 1)
 		refreshStarted.Done() // 通知主测试：refresh 已经进入
 		refreshDone.Wait()    // 阻塞，直到主测试放行
@@ -671,7 +649,7 @@ func TestCachedResultSupplier_Singleflight_NoCache(t *testing.T) {
 		}, nil
 	}
 
-	supplier := NewCachedResultSupplier(refreshFunc, enums.StaleValueBehaviorBlock, 5*time.Minute)
+	supplier := NewCachedResultSupplier(refreshFunc, enums.StaleValueBehaviorBlock)
 
 	const numGoroutines = 50
 	var wg sync.WaitGroup
@@ -716,7 +694,7 @@ func TestCachedResultSupplier_LockFreeIO(t *testing.T) {
 	refreshStarted := make(chan struct{})
 	refreshUnblock := make(chan struct{})
 
-	refreshFunc := func() (*RefreshResult[string], error) {
+	refreshFunc := func(context.Context) (*RefreshResult[string], error) {
 		close(refreshStarted)
 		<-refreshUnblock
 		return &RefreshResult[string]{
@@ -725,7 +703,7 @@ func TestCachedResultSupplier_LockFreeIO(t *testing.T) {
 		}, nil
 	}
 
-	supplier := NewCachedResultSupplier(refreshFunc, enums.StaleValueBehaviorBlock, 5*time.Minute)
+	supplier := NewCachedResultSupplier(refreshFunc, enums.StaleValueBehaviorBlock)
 
 	go func() {
 		_, _ = supplier.Get() // 触发 refreshFunc
@@ -755,7 +733,7 @@ func TestCachedResultSupplier_LockFreeIO(t *testing.T) {
 func TestCachedResultSupplier_Singleflight_DedupOnPrefetch(t *testing.T) {
 	var callCount int32
 	released := make(chan struct{})
-	refreshFunc := func() (*RefreshResult[string], error) {
+	refreshFunc := func(context.Context) (*RefreshResult[string], error) {
 		n := atomic.AddInt32(&callCount, 1)
 		if n > 1 {
 			// 第二次及之后的 refresh：阻塞一会儿，便于上层并发 Get
@@ -767,7 +745,7 @@ func TestCachedResultSupplier_Singleflight_DedupOnPrefetch(t *testing.T) {
 		}, nil
 	}
 
-	supplier := NewCachedResultSupplier(refreshFunc, enums.StaleValueBehaviorBlock, 180*time.Millisecond)
+	supplier := NewCachedResultSupplier(refreshFunc, enums.StaleValueBehaviorBlock)
 
 	// 第一次：建缓存
 	if _, err := supplier.Get(); err != nil {
@@ -789,8 +767,6 @@ func TestCachedResultSupplier_Singleflight_DedupOnPrefetch(t *testing.T) {
 		t.Errorf("预取去重失败：期望 refreshFunc 总调用 ≤ 2 次，实际 %d 次", got)
 	}
 }
-
-// ==================== 辅助函数 ====================
 
 // 注意：需要在文件顶部添加 import "fmt"
 // 但由于这是测试文件，我们在需要时使用 fmt.Sprintf

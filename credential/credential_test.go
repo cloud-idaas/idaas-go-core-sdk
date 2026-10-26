@@ -199,7 +199,7 @@ func TestIDaaSTokenResponse_EmptyFields(t *testing.T) {
 	}
 }
 
-// TestIDaaSTokenResponse_MarshalJSON_ZeroReceivedAt 覆盖 Suggestions #19 修复：
+// TestIDaaSTokenResponse_MarshalJSON_ZeroReceivedAt 覆盖：
 // 零值 ReceivedAt 不应输出 "received_at": -6795364578871 这样的远古负数时间戳。
 func TestIDaaSTokenResponse_MarshalJSON_ZeroReceivedAt(t *testing.T) {
 	resp := IDaaSTokenResponse{

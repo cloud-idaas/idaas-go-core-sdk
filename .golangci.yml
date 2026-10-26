@@ -1,0 +1,101 @@
+# golangci-lint configuration for idaas-go-core-sdk
+#
+# Go 1.18 floor: only enable linters that analyze go 1.18 code correctly.
+#
+# Schema note: this is a v1-shape config. golangci-lint v2 reads it in legacy
+# compatibility mode (non-fatal deprecation warning). A full `version: "2"`
+# rewrite is deferred until a maintainer can run `golangci-lint config verify`
+# locally — the v2 schema restructures linters-settings/exclusions and we do
+# not ship an unverified rewrite. CI pins the lint version (see ci.yml) so the
+# shape stays deterministic.
+
+run:
+  timeout: 5m
+  go: "1.18"
+
+linters:
+  enable:
+    - errcheck       # Check error return values
+    - gosimple       # Simplifies code
+    - govet          # Vet examinations
+    - ineffassign    # Detect ineffectual assignments
+    - staticcheck    # Static analysis
+    - typecheck      # Type-check code
+    - unused         # Find unused code
+    - misspell       # Finds commonly misspelled words
+    - revive         # Drop-in replacement for golint
+    - gocritic       # Comprehensive checks
+    - prealloc       # Finds slice declarations that could be preallocated
+    - forbidigo      # 防回潮：阻止内部 V##/R-##/NF-.../P#-# 编号回流到注释
+  # structcheck/deadcode/varcheck were removed upstream (superseded by unused);
+  # do not re-list them under disable — that produces deprecation noise on v1
+  # and hard errors on v2.
+
+linters-settings:
+  errcheck:
+    # Don't require error checks for fmt.* and similar
+    exclude-functions:
+      - fmt.Print*
+      - fmt.Fprint*
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - performance
+      - style
+    disabled-checks:
+      - hugeParam    # SDK structs are small, pointer params not always needed
+      - rangeValCopy # Known trade-off, acceptable for readability
+  revive:
+    severity: warning
+    # 2026-10 决策:以下三条规则关闭——var-naming/context-as-argument/exported 要求
+    # Http→HTTP、Id→ID、ctx 首参、去 stutter 等,与本 SDK 刻意对齐 Java/Python 兄弟库
+    # 及 JSON 配置 schema(clientId/httpConfiguration/HttpRequest)的命名策略冲突,
+    # 且相关导出 API 已随 alpha 发布。若将来转 idiomatic 命名,应作为独立的
+    # breaking-change 决策(v0.2+)配套 changelog,不夹带在开源同步提交里批量改名。
+    # 恢复方式:把对应 disabled 改回 false 并处理全量告警。
+    rules:
+      - name: exported
+        severity: warning
+        disabled: true
+      - name: var-naming
+        severity: warning
+        disabled: true
+      - name: context-as-argument
+        severity: warning
+        disabled: true
+  forbidigo:
+    # 禁止把内部需求/评审编号写进源码注释：这类编号对外没有意义，而且会把内部
+    # 工作项结构泄露到公开仓库。仅纳入无合法用途的 V/R-/NF-/P#-#。
+    # M##/U##/§/D##/C##/B## 不纳入——M2M(machine-to-machine)、§N 章节号、
+    # B2B/C99/D6 等都有合法用途，靠 review 把关而非 lint 硬拦。
+    analyze-types: false
+    forbid:
+      - p: '\bV[0-9]+\b'
+        msg: "internal version marker V## must not appear in source comments"
+      - p: '\bR-[0-9]+\b'
+        msg: "internal review marker R-## must not appear in source comments"
+      - p: '\bNF-[A-Z]+-[0-9]+\b'
+        msg: "internal nonfunctional marker NF-... must not appear in source comments"
+      - p: '\bP[0-9]+-[0-9]+\b'
+        msg: "internal priority marker P#-# must not appear in source comments"
+
+issues:
+  exclude-rules:
+    # Test files may use fmt.Println without checking errors; and they retain
+    # regression-test markers (e.g. "回归 ") as documentation by design, so
+    # forbidigo is also relaxed for _test.go.
+    - path: _test\.go
+      linters:
+        - errcheck
+        - forbidigo
+    # Samples may have simplified error handling
+    - path: samples/
+      linters:
+        - errcheck
+        - forbidigo
+    # Allow TODO/FIXME comments
+    - linters:
+        - godox
+      text: "TODO"
+  max-issues-per-linter: 0
+  max-same-issues: 0

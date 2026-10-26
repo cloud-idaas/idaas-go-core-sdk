@@ -1,0 +1,311 @@
+# CI 骨架
+#
+# 设计要点：
+#   1. Go 1.18 是**硬下限**，且必须用真实的 1.18 工具链验证 —— go.mod 里的 `go 1.18`
+#      只设置 -lang，**不会**阻止你 import 1.21 才有的 log/slog：那样的代码在 1.21 的
+#      runner 上能编译通过，到用户的 1.18 环境才炸。所以 build-go1-18-floor 是不可省的作业。
+#   2. samples/ 是独立 module，不在主模块构建图内，必须单独构建。
+#   3. 覆盖率门禁的阈值集中在 env.COVERAGE_MIN 一处，便于随测试补齐逐步抬高。
+
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # 发布 module 路径，module-path-check 以此为唯一事实来源
+  MODULE_PATH: github.com/cloud-idaas/idaas-go-core-sdk
+  # SDK 承诺的最低 Go 版本
+  GO_FLOOR: "1.18"
+  # 开发/发布使用的 Go 版本（lint、govulncheck、覆盖率等在此版本上跑）
+  # 必须钉在"当前仍受支持"的大版本：Go 每个大版本支持到出现两个更新主版本即 EOL，
+  # EOL 版本不再回填 stdlib 安全补丁，govulncheck 会持续报红。1.22 已 EOL（47 条
+  # stdlib vulns）；bump 到 1.27（2026-08 GA，最新受支持大版本）后这些 vulns 由
+  # 工具链侧修复，govulncheck 退回 exit 0。GO_FLOOR=1.18 下限作业不受影响（独立 job）。
+  GO_STABLE: "1.27"
+  # 覆盖率下限（百分比）。
+  # 实测行覆盖率 ~90%,门禁对齐实测值设为 90:既守住已覆盖范围,
+  # 又能在覆盖率下滑时及时拦截。禁止回调到更低值。
+  COVERAGE_MIN: "90"
+  # golangci-lint 版本固定（不取 latest，避免某次坏 release 让所有 PR 变红）。
+  # 与 .golangci.yml 的 v1-shape 配置匹配；升级到 v2 schema 时同步 bump 此处。
+  GOLANGCI_LINT_VERSION: "v1.62.0"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Go 1.18 下限作业：唯一能证明"SDK 真的能在 1.18 上编译"的作业
+  # ---------------------------------------------------------------------------
+  build-go1-18-floor:
+    # 作业名里的版本号写死：job 级别的 name 取不到 env 上下文。
+    name: build (Go 1.18 floor)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_FLOOR }}
+          # 1.18 的 module 缓存与新版本不兼容，单独 key，避免互相污染
+          cache-dependency-path: go.sum
+      - name: go version
+        run: go version
+      - name: build
+        run: go build ./...
+      - name: vet
+        # vet 会解析全部 import，是捕获"误用高版本 stdlib"的第二道闸
+        run: go vet ./...
+      - name: test (no race, 1.18 floor)
+        # 下限作业只验证"能跑通"，-race 的完整回归交给 test 作业
+        run: go test ./...
+
+  # ---------------------------------------------------------------------------
+  # 2. 模块路径与版本占位符检查（纯脚本，秒级完成，放在最前面快速失败）
+  # ---------------------------------------------------------------------------
+  module-path-check:
+    name: module path & version placeholder
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: go.mod module path must equal the published path
+        run: |
+          actual="$(awk '/^module /{print $2; exit}' go.mod)"
+          if [ "$actual" != "$MODULE_PATH" ]; then
+            echo "::error file=go.mod::module path is '$actual', expected '$MODULE_PATH'"
+            echo "Go 的 module path 同时是抓取地址，二者不一致会让 go get 直接失败。"
+            exit 1
+          fi
+
+      - name: no internal references left in the repository
+        # 内部域名 / 内部仓库路径 / 日常、预发环境 endpoint 不得出现在仓库任何文件里：
+        # 外部用户访问不到，且会泄露内部仓库拓扑与环境信息。
+        #
+        # 扫描全仓库（含 docs/、testdata/、配置文件），仅排除 .git、本文件自身（需要列出关键词）
+        # 以及被 .gitignore 忽略的本地目录（docs/review/、integration/testdata/.local/，本就不会入库）。
+        # 集成测试的真实环境配置只放 testdata/.local/，仓库里只留 *.example.json 占位模板。
+        #
+        # 原 --exclude-dir=review 全局排除任何名为 review 的目录,
+        # 会误排除仓库中其它合法的 review/ 目录（如第三方代码审查工具目录）。
+        # 改为在结果中按路径过滤,只排除 docs/review/。
+        run: |
+          hits="$(grep -rnIE \
+                    --exclude-dir=.git --exclude-dir=.local \
+                    --exclude=ci.yml \
+                    -e 'alibaba-inc\.com' -e 'aliyun-inc\.com' -e 'aliyunidaas-lab' \
+                    -e 'aliyunidaas\.com' -e 'pre-zeus' -e 'daily\.aliyunidaas' -e '-daily[.-]' . \
+                    | grep -v '^docs/review/' || true)"
+          if [ -n "$hits" ]; then
+            echo "$hits"
+            echo "::error::found internal references; module path must be $MODULE_PATH, endpoints must be public or example.com placeholders"
+            exit 1
+          fi
+
+      - name: LICENSE must be the verbatim Apache-2.0 text
+        # 任何改动都会让它变成"自定义许可证"，pkg.go.dev 与企业许可证扫描将无法识别。
+        # 版权与商标声明请写在 NOTICE，不要改 LICENSE。
+        run: |
+          expected="cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+          actual="$(sha256sum LICENSE | awk '{print $1}')"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error file=LICENSE::LICENSE differs from https://www.apache.org/licenses/LICENSE-2.0.txt"
+            exit 1
+          fi
+
+      - name: samples module must replace the SDK with the local copy
+        run: |
+          grep -q "^replace $MODULE_PATH => \.\./" samples/go.mod || {
+            echo "::error file=samples/go.mod::missing 'replace $MODULE_PATH => ../'"
+            exit 1
+          }
+
+      - name: sdkVersion must stay a placeholder in source
+        # 真实版本号只能由发布流水线用 -ldflags 注入。
+        # 源码里一旦出现 1.0.0 这种"看起来像真版本号的假版本号"，
+        # SDK 就会向服务端谎报版本，破坏按版本灰度与排障的能力。
+        run: |
+          value="$(sed -n 's/^var sdkVersion = "\(.*\)"$/\1/p' http/user_agent.go)"
+          if [ -z "$value" ]; then
+            echo "::error file=http/user_agent.go::cannot locate 'var sdkVersion = \"...\"'"
+            exit 1
+          fi
+          if printf '%s' "$value" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error file=http/user_agent.go::sdkVersion='$value' looks like a real version;"
+            echo "use a placeholder such as 0.0.0-dev and inject the real one via -ldflags."
+            exit 1
+          fi
+
+  # ---------------------------------------------------------------------------
+  # 3. 格式 + 静态检查
+  # ---------------------------------------------------------------------------
+  lint:
+    name: gofmt & golangci-lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          # golangci-lint v1.62 由 Go 1.22 构建,只能读取 export data <= v2;
+          # 用 GO_STABLE(1.27) 会让 typecheck 崩在 "export data version 5"。
+          # 迁移 golangci-lint v2 后可改回 ${{ env.GO_STABLE }}。
+          go-version: "1.22"
+      - name: gofmt
+        run: |
+          unformatted="$(gofmt -l . | grep -v '^samples/' || true)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::these files are not gofmt'd:"
+            echo "$unformatted"
+            exit 1
+          fi
+      - uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # golangci-lint-action v6
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          args: --timeout=5m
+
+  # ---------------------------------------------------------------------------
+  # 4. 竞态检测 + 覆盖率
+  # ---------------------------------------------------------------------------
+  test:
+    name: test (race + coverage)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_STABLE }}
+      - name: test with race detector
+        # 凭证缓存涉及 singleflight / 后台预取 goroutine / 代数计数器，
+        # -race 是这部分代码唯一有效的回归手段，不可省。
+        run: go test -race -covermode=atomic -coverprofile=coverage.out ./...
+      - name: coverage gate
+        run: |
+          total="$(go tool cover -func=coverage.out | awk '/^total:/{print substr($3, 1, length($3)-1)}')"
+          echo "total coverage: ${total}%  (minimum: ${COVERAGE_MIN}%)"
+          awk -v t="$total" -v m="$COVERAGE_MIN" \
+            'BEGIN { if (t+0 < m+0) { printf("::error::coverage %.1f%% is below the %s%% gate\n", t, m); exit 1 } }'
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: coverage
+          path: coverage.out
+
+  # ---------------------------------------------------------------------------
+  # 4b. 基准测试:只采集 ns/op 与 allocs/op,不设回归门禁。
+  #     GitHub runner 负载波动大,硬门禁易误报;此 job 用于趋势可观测,
+  #     结果随构建产物上传供人工比对。失败不影响 CI 结论。
+  # ---------------------------------------------------------------------------
+  benchmark:
+    name: benchmark (ns/op + allocs)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_STABLE }}
+      - name: run benchmarks
+        continue-on-error: true
+        # -run=^$ 跳过所有普通测试,只跑 Benchmark*;benchmem 输出分配数。
+        # 失败不影响 CI 结论（continue-on-error），仅上传产物供趋势比对。
+        run: go test -run='^$' -bench=. -benchmem -count=3 ./cache/... ./util/... 2>&1 | tee bench.out
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: benchmark
+          path: bench.out
+
+
+  # ---------------------------------------------------------------------------
+  # 5. 已知漏洞扫描
+  # ---------------------------------------------------------------------------
+  govulncheck:
+    name: govulncheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_STABLE }}
+      - name: install govulncheck
+        # 固定旧版(v1.1.0)内置的 x/tools 无法解析新版 Go 标准库
+        # (报 "invalid array length -delta * delta");漏洞数据库本就是实时拉取,
+        # 工具跟随 latest 与 runner 的 Go 保持兼容。
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: scan
+        run: govulncheck ./...
+
+  # ---------------------------------------------------------------------------
+  # 5b. 密钥泄露扫描（gitleaks）。全仓扫描，用内置默认规则。
+  #     根 config/凭证只放 *.example.json 模板与 testdata/.local/（gitignored），
+  #     此 job 兜底防止误提交真实 secret。
+  # ---------------------------------------------------------------------------
+  secret-scan:
+    name: gitleaks (secret scan)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      # gitleaks-action 对 org 仓库强制要求付费 GITLEAKS_LICENSE;
+      # gitleaks CLI 本身是 AGPL-3.0(开源仓库免费),改为下载固定版 CLI 直接跑。
+      # 若组织后续拿到 license,可换回 action。
+      - name: gitleaks detect (CLI)
+        run: |
+          ver=8.28.0
+          curl -sSfL -o gitleaks.tgz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${ver}/gitleaks_${ver}_linux_x64.tar.gz"
+          tar -xzf gitleaks.tgz
+          ./gitleaks detect --source . --redact --no-banner --config .gitleaks.toml
+
+  # ---------------------------------------------------------------------------
+  # 6. 样例独立 module 的构建
+  # ---------------------------------------------------------------------------
+  build-samples:
+    name: build samples (separate module)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_STABLE }}
+          cache-dependency-path: samples/go.sum
+      - name: build
+        # 用样例自己声明的 Go 版本构建；样例的依赖不会反向污染主模块下限。
+        working-directory: samples
+        run: go build ./...
+      - name: vet
+        working-directory: samples
+        run: go vet ./...
+
+  # ---------------------------------------------------------------------------
+  # 7. 集成测试作业。带 `-tags=integration` 编译集成测试包（验证其可编译），
+  #     运行时由 skipIfIntegrationDisabled 在缺凭证/不可达时逐用例 t.Skip，
+  #     因此 CI 无凭证也能通过（不 fail）。IDAAS_IT=off 可整体关闭。
+  # ---------------------------------------------------------------------------
+  integration:
+    name: integration (skip on missing creds)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_STABLE }}
+      - name: integration tests
+        # 无凭证时全部 skip；有凭证（secrets/vars 注入 + IDAAS_IT≠off）才真跑。
+        run: go test -tags=integration -race ./...

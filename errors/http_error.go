@@ -2,12 +2,15 @@ package errors
 
 import "fmt"
 
-// HttpError 通用 HTTP 错误 (§3.7.9)
+// HttpError 通用 HTTP 错误
 type HttpError struct {
 	Code       string
 	Message    string
 	StatusCode int
 	Cause      error
+
+	// requestId 服务端请求 ID,理由见 ClientError.requestId。
+	requestId string
 }
 
 func (e *HttpError) Error() string {
@@ -23,6 +26,20 @@ func (e *HttpError) ErrorCode() string {
 
 func (e *HttpError) ErrorMessage() string {
 	return e.Message
+}
+
+// RequestId 返回服务端请求 ID;本层没有时沿 Cause 链向下查找。
+func (e *HttpError) RequestId() string {
+	if e.requestId != "" {
+		return e.requestId
+	}
+	return requestIdFromChain(e.Cause)
+}
+
+// WithRequestId 写入服务端请求 ID 并返回自身,便于链式构造。
+func (e *HttpError) WithRequestId(requestId string) *HttpError {
+	e.requestId = requestId
+	return e
 }
 
 // Unwrap 支持 errors.Is / errors.As 链

@@ -1,0 +1,150 @@
+# Release workflow (v0.x beta)
+#
+# Tag-driven: pushing a `v*` tag creates a GitHub Release. The SDK is a
+# library (no main binary), so the release publishes release notes plus a
+# version-stamped sample binary that demonstrates -ldflags injection of
+# http.sdkVersion. Consumers resolve the version via `go get` + the tag —
+# we do not upload to a module proxy (the module path is published by the
+# git tag itself).
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+  MODULE_PATH: github.com/cloud-idaas/idaas-go-core-sdk
+
+# 原实现把 build/test 验证和 release 放在同一个持有
+# contents:write 权限的 job 里。验证阶段不需要写权限,违反最小权限原则——
+# 若验证步骤被篡改(e.g. 供应链攻击注入恶意 step),写权限会放大影响。
+# 拆为 validate(只读)+ release(写,依赖 validate 通过)两个 job。
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. 验证 job：只读权限,跑 build + test,证明 tag 来源的代码树可用。
+  #    失败则 release job 不会启动(GitHub Actions 的 needs 依赖)。
+  # ---------------------------------------------------------------------------
+  validate:
+    name: validate (build & test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          # 只读 job 不需要 GITHUB_TOKEN 写权限,禁用持久化凭据
+          persist-credentials: false
+
+      # Go 1.18 floor gate: go.mod declares go 1.18; verify the main module
+      # builds and tests pass on the minimum supported Go version BEFORE
+      # creating any release artifact. Failing here aborts the release.
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.18"
+          cache-dependency-path: go.sum
+      - name: verify build & tests (Go 1.18 floor)
+        run: |
+          go build ./...
+          go test ./...
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.22"
+
+      # Sanity gate: never cut a release from a broken tree.
+      - name: verify build & tests
+        run: |
+          go build ./...
+          go test ./...
+
+  # ---------------------------------------------------------------------------
+  # 2. 发布 job：持有 contents:write,仅在 validate 通过后执行。
+  # ---------------------------------------------------------------------------
+  release:
+    name: Create release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: validate
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.22"
+
+      # The tag IS the version; reject tags that aren't canonical SemVer so a
+      # mistag doesn't ship a bogus User-Agent. Uses a strict POSIX regex that
+      # rejects leading zeros (v01.2.3), empty dot-segments (v1.2.3-foo..bar),
+      # and non-canonical pre-release/build metadata.
+      #
+      # 原 prerelease 标识符用 [0-9A-Za-z-]+ 允许纯数字前导零
+      # (如 v0.1.0-01),违反 SemVer 2.0 §9.4 "Numeric identifiers MUST NOT
+      # include leading zeroes"。改为 (0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)
+      # 区分纯数字(禁前导零)与含字母标识符(允许任意数字)。
+      - name: validate tag is semver
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if ! printf '%s' "$tag" | grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(\+([0-9A-Za-z-]+)(\.[0-9A-Za-z-]+)*)?$'; then
+            echo "::error::tag '$tag' is not a canonical semver (expected vX.Y.Z[-pre][+build]; no leading zeros in numeric identifiers, no empty dot-segments)"
+            exit 1
+          fi
+
+          # go.mod 的 module path 无 /v2 后缀,major version >= 2 会
+          # 让 go get 解析到 v1 的 latest 而非 tag 对应版本(Go major version
+          # suffix 规则)。beta 阶段只允许 0 或 1。
+          major="${tag#v}"
+          major="${major%%.*}"
+          if [ "$major" -ge 2 ]; then
+            echo "::error::major version $major >= 2 but go.mod module path has no /v$major suffix"
+            echo "go get would resolve to v1 latest, not this tag. Either add /v$major suffix to go.mod or keep major <= 1."
+            exit 1
+          fi
+
+          echo "VERSION=$tag" >> "$GITHUB_ENV"
+
+      # Build the obtain-token sample with the version stamped in. Proves the
+      # -ldflags path works and gives consumers a runnable example binary.
+      - name: build stamped sample binary (linux/amd64 + darwin/arm64)
+        run: |
+          mkdir -p dist
+          for target in "linux/amd64" "darwin/arm64"; do
+            os="${target%/*}"; arch="${target#*/}"
+            bin="dist/obtain-token-${os}-${arch}"
+            GOOS="$os" GOARCH="$arch" go build -C samples -o "../${bin}" \
+              -ldflags "-X ${MODULE_PATH}/http.sdkVersion=${VERSION}" \
+              ./obtain-token
+          done
+          ls -la dist/
+
+      - name: create GitHub release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # action-gh-release v2
+        with:
+          name: ${{ env.VERSION }}
+          generate_release_notes: true
+          files: dist/obtain-token-*
+          body: |
+            ## IDaaS Go Core SDK ${{ env.VERSION }}
+
+            This is a `v0.x` beta release. The public API may change before `v1.0`.
+
+            ### Install
+
+            ```
+            go get ${{ env.MODULE_PATH }}@${{ env.VERSION }}
+            ```
+
+            ### Version stamping
+
+            The `User-Agent` header reports the version injected at build time via
+            `-ldflags "-X ${{ env.MODULE_PATH }}/http.sdkVersion=<version>"`. The
+            attached `obtain-token-*` binaries are stamped with this tag as a
+            reference. If you build from source without `-ldflags`, the version
+            reports as `0.0.0-dev`.

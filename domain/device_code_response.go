@@ -1,6 +1,6 @@
 package domain
 
-// DeviceCodeResponse Device Code 响应结构体 (§3.5)
+// DeviceCodeResponse Device Code 响应结构体
 type DeviceCodeResponse struct {
 	DeviceCode              string `json:"device_code"`
 	UserCode                string `json:"user_code"`

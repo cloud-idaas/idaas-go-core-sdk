@@ -1,0 +1,20 @@
+{
+  "_comment": "K8s Service Account JWT 的 OIDC 联邦换票。对应用例 TestOidcKubernetes，需在集群内 Pod 中运行（go test 工作目录为 integration/）；token 路径解析顺序：oidcTokenFilePath → oidcTokenFilePathEnvVarName → 默认 SA 路径 /var/run/secrets/kubernetes.io/serviceaccount/token，均留空即用 SA 默认路径；IDaaS 联邦凭证需信任该集群 API Server 的 OIDC issuer 且 audience 匹配",
+  "idaasInstanceId": "idaas_your_instance_id",
+  "clientId": "app_your_client_id",
+  "issuer": "https://your-instance.example.com/api/v2/iauths_system/oauth2",
+  "tokenEndpoint": "https://your-instance.example.com/api/v2/iauths_system/oauth2/token",
+  "scope": "urn:cloud:idaas:pam|urn:alibaba:idaas:scope:cloud_account_resource:manage_all",
+  "openApiEndpoint": "openapi.example.com",
+  "developerApiEndpoint": "developerapi.example.com",
+  "authnConfiguration": {
+    "identityType": "CLIENT",
+    "authnMethod": "OIDC",
+    "applicationFederatedCredentialName": "your-federated-credential-name",
+    "clientDeployEnvironment": "KUBERNETES"
+  },
+  "httpConfiguration": {
+    "connectTimeout": 5000,
+    "readTimeout": 10000
+  }
+}

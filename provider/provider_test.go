@@ -35,6 +35,11 @@ func (m *mockCredential) GetRefreshToken() string {
 	return m.refreshToken
 }
 
+// String 实现 IDaaSCredential.String (M9)，测试 mock 仅返回固定占位。
+func (m *mockCredential) String() string {
+	return "mockCredential"
+}
+
 func TestIDaaSCredentialProviderInterface(t *testing.T) {
 	// Verify that the interface is properly defined
 	var _ credential.IDaaSCredential = (*mockCredential)(nil)

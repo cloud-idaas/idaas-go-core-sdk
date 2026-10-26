@@ -5,7 +5,7 @@ import (
 	"net/url"
 )
 
-// HttpRequest HTTP 请求模型 (§9.4)
+// HttpRequest HTTP 请求模型
 type HttpRequest struct {
 	Method      enums.HttpMethod
 	URL         string

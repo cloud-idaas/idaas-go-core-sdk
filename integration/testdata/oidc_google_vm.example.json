@@ -1,0 +1,20 @@
+{
+  "_comment": "GCE VM 元数据服务 ID Token 的 OIDC 联邦换票。对应用例 TestOidcGoogleVm，需在 GCE VM 上运行（metadata.google.internal 仅 GCP 内可解析）；audience 取本配置 issuer 的 origin，IDaaS 联邦凭证需登记对应 service account 的 issuer（accounts.google.com）并匹配 aud",
+  "idaasInstanceId": "idaas_your_instance_id",
+  "clientId": "app_your_client_id",
+  "issuer": "https://your-instance.example.com/api/v2/iauths_system/oauth2",
+  "tokenEndpoint": "https://your-instance.example.com/api/v2/iauths_system/oauth2/token",
+  "scope": "urn:cloud:idaas:pam|urn:alibaba:idaas:scope:cloud_account_resource:manage_all",
+  "openApiEndpoint": "openapi.example.com",
+  "developerApiEndpoint": "developerapi.example.com",
+  "authnConfiguration": {
+    "identityType": "CLIENT",
+    "authnMethod": "OIDC",
+    "applicationFederatedCredentialName": "your-federated-credential-name",
+    "clientDeployEnvironment": "GOOGLE_VM"
+  },
+  "httpConfiguration": {
+    "connectTimeout": 5000,
+    "readTimeout": 10000
+  }
+}

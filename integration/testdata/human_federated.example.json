@@ -1,0 +1,9 @@
+{
+  "_comment": "Human Federated OIDC(Device Code 流程)集成测试配置模板。",
+  "_comment_usage": "cp integration/testdata/human_federated.example.json integration/testdata/.local/human_federated.json 后填入真实值。该流程需要人工扫码完成授权,仅作为人工集成验证入口,CI 不跑(无 .local 配置时 skip)。",
+  "_comment_run": "go test -tags integration -v -run TestHumanFederatedDeviceFlow_RealIdP ./integration/  # 加 IDAAS_IT_HUMAN_FLOW=on 才进入阻塞 device flow(需测试期间人工扫码,200s 超时);未设则只验证构造不 panic、可访问字段正常——缓存路径落点与 sanitize 由包内 TestBoundary_HumanProvider_FullFlow_MaliciousInstanceId 覆盖(localHumanCachePath 未导出,跨包无法断言)",
+  "instanceId": "your-idaas-instance-id",
+  "clientId": "your-client-id",
+  "tokenEndpoint": "https://your-idaas-instance.idaas.aliyun.com/oauth2/v1/token",
+  "deviceAuthorizationEndpoint": "https://your-idaas-instance.idaas.aliyun.com/oauth2/v1/device_authorization"
+}

@@ -1,0 +1,21 @@
+{
+  "idaasInstanceId": "idaas_your_instance_id",
+  "clientId": "app_your_client_id",
+  "issuer": "https://your-instance.example.com/api/v2/iauths_system/oauth2",
+  "tokenEndpoint": "https://your-instance.example.com/api/v2/iauths_system/oauth2/token",
+  "scope": "urn:cloud:idaas:pam|urn:alibaba:idaas:scope:cloud_account_resource:manage_all",
+  "openApiEndpoint": "openapi.example.com",
+  "developerApiEndpoint": "developerapi.example.com",
+  "httpConfiguration": {
+    "connectTimeout": 5000,
+    "readTimeout": 10000
+  },
+  "authnConfiguration": {
+    "identityType": "CLIENT",
+    "privateKeyEnvVarName": "IDAAS_PRIVATE_KEY",
+    "authnMethod": "PCA",
+    "applicationFederatedCredentialName": "your-federated-credential-name",
+    "clientX509Certificate": "-----BEGIN CERTIFICATE-----\n<client leaf certificate, paired with IDAAS_PRIVATE_KEY>\n-----END CERTIFICATE-----\n",
+    "x509CertChains": "-----BEGIN CERTIFICATE-----\n<intermediate CA certificate>\n-----END CERTIFICATE-----"
+  }
+}

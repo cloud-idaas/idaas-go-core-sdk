@@ -15,6 +15,12 @@ out/
 coverage.txt
 coverage.html
 
+# samples 编译产物（go build 生成的同名二进制，不入库）
+samples/device-code/device-code
+samples/obtain-token/obtain-token
+samples/refresh-token/refresh-token
+samples/token-exchange/token-exchange
+
 # Go 工作区
 go.work
 go.work.sum
@@ -27,7 +33,13 @@ go.work.sum
 *.key
 client-config.json
 .cloud_idaas/
+# 环境变量形式的密钥文件（保留 *.example.env 作为模板）
+*.env
+!*.example.env
+credentials.env
 
+# MCP 本地配置（含服务器 URL 和 key，属于个人环境配置）
+.mcp.json
 # IDE
 .vscode/
 .idea/*
@@ -49,3 +61,22 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# 内部评审报告，不进入开源仓库
+docs/review/
+CODE_REVIEW_PLAN.md
+CODE_REVIEW_REPORT.md
+CODE_REVIEW_REPORT_v2.md
+CODE_REVIEW_REPORT_v3.md
+
+# 集成测试的本地环境配置与凭证（真实 endpoint / clientId / 证书 / 密钥），只留在本机
+integration/testdata/.local/
+# AI code review / 内部评审产物，不进入开源仓库
+review-output*/
+review-result.json
+REVIEW_*.md
+
+# 本地备份与临时文件
+*.bak
+*.orig
+.codegraph/

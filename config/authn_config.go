@@ -7,7 +7,7 @@ import (
 	"github.com/cloud-idaas/idaas-go-core-sdk/enums"
 )
 
-// IdentityAuthenticationConfiguration 身份认证配置结构体 (§13.4)
+// IdentityAuthenticationConfiguration 身份认证配置结构体
 type IdentityAuthenticationConfiguration struct {
 	AuthnMethod  enums.TokenAuthnMethod           `json:"authnMethod"`
 	IdentityType enums.AuthenticationIdentityEnum `json:"identityType"`
@@ -52,17 +52,17 @@ func (c *IdentityAuthenticationConfiguration) UnmarshalJSON(data []byte) error {
 
 	// AuthnMethod 的枚举常量定义为小写（如 "client_secret_basic"），归一化为小写
 	if raw.AuthnMethod != "" {
-		raw.AuthnMethod = enums.TokenAuthnMethod(strings.ToLower(string(raw.AuthnMethod)))
+		raw.AuthnMethod = enums.TokenAuthnMethod(strings.ToLower(strings.TrimSpace(string(raw.AuthnMethod))))
 	}
 
 	// IdentityType 的枚举常量定义为大写（如 "CLIENT"、"HUMAN"），归一化为大写
 	if raw.IdentityType != "" {
-		raw.IdentityType = enums.AuthenticationIdentityEnum(strings.ToUpper(string(raw.IdentityType)))
+		raw.IdentityType = enums.AuthenticationIdentityEnum(strings.ToUpper(strings.TrimSpace(string(raw.IdentityType))))
 	}
 
 	// ClientDeployEnvironment 的枚举常量定义为大写（如 "ALIBABA_CLOUD_ECS"、"KUBERNETES"），归一化为大写
 	if raw.ClientDeployEnvironment != "" {
-		raw.ClientDeployEnvironment = enums.ClientDeployEnvironmentEnum(strings.ToUpper(string(raw.ClientDeployEnvironment)))
+		raw.ClientDeployEnvironment = enums.ClientDeployEnvironmentEnum(strings.ToUpper(strings.TrimSpace(string(raw.ClientDeployEnvironment))))
 	}
 
 	*c = IdentityAuthenticationConfiguration(raw)

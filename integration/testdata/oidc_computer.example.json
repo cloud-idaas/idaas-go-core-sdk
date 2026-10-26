@@ -1,0 +1,22 @@
+{
+  "idaasInstanceId": "idaas_your_instance_id",
+  "clientId": "app_your_client_id",
+  "issuer": "https://your-instance.example.com/api/v2/iauths_system/oauth2",
+  "tokenEndpoint": "https://your-instance.example.com/api/v2/iauths_system/oauth2/token",
+  "deviceAuthorizationEndpoint": "https://your-instance.example.com/api/v2/iauths_system/oauth2/device/code",
+  "scope": "urn:cloud:idaas:pam|urn:alibaba:idaas:scope:cloud_account_resource:manage_all",
+  "openApiEndpoint": "openapi.example.com",
+  "developerApiEndpoint": "developerapi.example.com",
+  "authnConfiguration": {
+    "identityType": "CLIENT",
+    "authnMethod": "OIDC",
+    "applicationFederatedCredentialName": "your-federated-credential-name",
+    "clientDeployEnvironment": "COMPUTER",
+    "oidcTokenFilePath": "",
+    "oidcTokenFilePathEnvVarName": "OIDC_TOKEN_FILE_PATH"
+  },
+  "httpConfiguration": {
+    "connectTimeout": 5000,
+    "readTimeout": 10000
+  }
+}

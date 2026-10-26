@@ -3,22 +3,26 @@
 // 一个文件覆盖全部 7 种 CLIENT 身份认证方式：
 //
 //	client_secret_basic / client_secret_post / client_secret_jwt /
-//	private_key_jwt    / pca / pkcs7 / oidc
+//	private_key_jwt / pca / pkcs7 / oidc
 //
 // 支持两种模式：
 //
-//  1. 单配置模式 — 传入一个 -config 或走默认优先级
-//  2. 多配置批量模式 — 传入多个配置文件路径（用逗号分隔或多次指定 -config），
-//     依次加载并测试每个配置，汇总结果。适用于一次性验证多种 authnMethod。
+// 1. 单配置模式 — 传入一个 -config 或走默认优先级
+// 2. 多配置批量模式 — 传入多个配置文件路径（用逗号分隔或多次指定 -config），
+// 依次加载并测试每个配置，汇总结果。适用于一次性验证多种 authnMethod。
 //
 // 用法：
 //
-//	go run ./samples/obtain-token                                            # 走默认优先级
-//	go run ./samples/obtain-token -config /path/to/cfg.json                  # 单配置
-//	go run ./samples/obtain-token -config a.json -config b.json -config c.json  # 多配置批量
-//	go run ./samples/obtain-token -config "a.json,b.json,c.json"             # 逗号分隔
+//	go run ./samples/obtain-token # 走默认优先级
+//	go run ./samples/obtain-token -config /path/to/cfg.json # 单配置
+//	go run ./samples/obtain-token -config a.json -config b.json -config c.json # 多配置批量
+//	go run ./samples/obtain-token -config "a.json,b.json,c.json" # 逗号分隔
 //
 // 各 authnMethod 对应的配置文件示例参见 samples/README.md。
+//
+// 本示例使用公开 factory API（InitWithConfig / GetIDaaSCredentialProvider / Reset），
+// 不直接引用 internal/implementation 包——这正是 internal 包约束的目的：
+// 外部消费者只能通过 factory 获取凭证提供者，实现细节不暴露。
 package main
 
 import (
@@ -29,8 +33,7 @@ import (
 
 	"github.com/cloud-idaas/idaas-go-core-sdk/config"
 	"github.com/cloud-idaas/idaas-go-core-sdk/credential"
-	"github.com/cloud-idaas/idaas-go-core-sdk/http"
-	"github.com/cloud-idaas/idaas-go-core-sdk/implementation"
+	"github.com/cloud-idaas/idaas-go-core-sdk/factory"
 )
 
 // configFlags 支持多次指定 -config 的自定义 flag 类型
@@ -106,20 +109,40 @@ func main() {
 		}
 		fmt.Printf("Getting access token (authnMethod=%s)...\n", authnMethod)
 
-		httpClient := newHttpClientFromConfig(cfg)
-		credentialProvider := implementation.NewIDaaSMachineCredentialProvider(cfg, httpClient)
+		// 使用公开 factory API：InitWithConfig 负责配置校验、HTTP 客户端创建和预热。
+		// factory 是单例，多配置批量模式下每次迭代必须 Reset 以重新初始化。
+		if err := factory.InitWithConfig(cfg); err != nil {
+			msg := fmt.Sprintf("Failed to initialize factory: %v", err)
+			log.Println(msg)
+			factory.Reset()
+			results = append(results, result{configPath: cfgPath, authnMethod: authnMethod, errMsg: msg})
+			continue
+		}
+
+		credentialProvider, err := factory.GetIDaaSCredentialProvider()
+		if err != nil {
+			msg := fmt.Sprintf("Failed to get credential provider: %v", err)
+			log.Println(msg)
+			factory.Reset()
+			results = append(results, result{configPath: cfgPath, authnMethod: authnMethod, errMsg: msg})
+			continue
+		}
 
 		var cred credential.IDaaSCredential
 		cred, err = credentialProvider.GetCredential()
 		if err != nil {
 			msg := fmt.Sprintf("Failed to get credential: %v", err)
 			log.Println(msg)
+			factory.Reset()
 			results = append(results, result{configPath: cfgPath, authnMethod: authnMethod, errMsg: msg})
 			continue
 		}
 
 		printCredential(cred)
 		results = append(results, result{configPath: cfgPath, authnMethod: authnMethod, success: true})
+
+		// 单例重置，为下一次迭代（或进程退出）清理状态。
+		factory.Reset()
 	}
 
 	// 多配置模式下打印汇总
@@ -157,17 +180,6 @@ func printCredential(cred credential.IDaaSCredential) {
 	if refreshToken := cred.GetRefreshToken(); refreshToken != "" {
 		fmt.Printf("Refresh Token: %s\n", maskToken(refreshToken))
 	}
-}
-
-func newHttpClientFromConfig(cfg *config.IDaaSClientConfig) http.HttpClient {
-	if cfg.HttpConfiguration == nil {
-		return http.NewDefaultHttpClient(0, 0)
-	}
-	return http.NewDefaultHttpClientWithOptions(
-		cfg.HttpConfiguration.ConnectTimeout,
-		cfg.HttpConfiguration.ReadTimeout,
-		cfg.HttpConfiguration.UnsafeIgnoreSSLCert,
-	)
 }
 
 func maskToken(token string) string {

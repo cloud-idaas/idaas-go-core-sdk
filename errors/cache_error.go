@@ -2,7 +2,7 @@ package errors
 
 import "fmt"
 
-// CacheError 缓存错误 (缓存/刷新失败) (§3.7.6)
+// CacheError 缓存错误 (缓存/刷新失败)
 type CacheError struct {
 	Code    string
 	Message string
@@ -22,6 +22,14 @@ func (e *CacheError) ErrorCode() string {
 
 func (e *CacheError) ErrorMessage() string {
 	return e.Message
+}
+
+// RequestId 返回服务端请求 ID。
+//
+// 缓存错误自身不产生 requestId,但它常常包着一次失败的刷新请求;
+// 沿 Cause 链向下查找,调用方在最外层就能拿到真正那次 HTTP 请求的 ID。
+func (e *CacheError) RequestId() string {
+	return requestIdFromChain(e.Cause)
 }
 
 // Unwrap 支持 errors.Is / errors.As 链
